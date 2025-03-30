@@ -1,0 +1,3 @@
+[submodule "third_party/python_provider"]
+	path = output/flow/bounty_0
+	url = git@github.com:8ball030/vs_python_client.git
