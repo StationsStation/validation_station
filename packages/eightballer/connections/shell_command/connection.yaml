@@ -1,0 +1,26 @@
+name: shell_command
+author: eightballer
+version: 0.1.0
+type: connection
+description: A connection for executing command-line instructions between an agent
+  and a CLI shell.
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  README.md: bafybeic3vcau3ode3x2sds7abxctpcareyc5i6ctrd4kkwdmbi7cidx2nq
+  __init__.py: bafybeigmaigbnktfaf2b5phoppbgl77gelxibbgoj5jkjcn6kl66p6uviq
+  connection.py: bafybeihhubyapexgpvkwq5qzob5zgtfzgtyw4v4e2kwwsukoka6cu45jfa
+  tests/__init__.py: bafybeibjpw7st4bx7aiw4ohl2xogvp23fv2yzldg6yvcp7l3elga3bwufq
+  tests/test_connection.py: bafybeic2ze7muh3qzz4wc7ta44fx5kbp5anzmrd5w5rpbnayndmdxl57oy
+fingerprint_ignore_patterns: []
+connections: []
+protocols:
+- eightballer/shell_command:0.1.0:bafybeidtcfuf3f3uysbax7wmsw2yr6ngvsaiemlifbegqtgby2bszwpgpi
+class_name: ShellCommandConnection
+config:
+  foo: bar
+excluded_protocols: []
+restricted_to_protocols: []
+dependencies: {}
+is_abstract: false
+cert_requests: []

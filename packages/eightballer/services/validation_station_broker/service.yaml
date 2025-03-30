@@ -1,0 +1,23 @@
+name: validation_station_broker
+author: eightballer
+version: 0.1.0
+description: A new service, scaffolded by the Adev cli from eightballer/validation_station_broker:0.1.0
+aea_version: '>=1.0.0, <2.0.0'
+license: apache-2.0
+fingerprint: {}
+fingerprint_ignore_patterns: []
+agent: eightballer/validation_station_broker:0.1.0:bafybeicbqncwggjj4p2o5562lrd7udhrioedudyp7lbdtbbervazl3qjye
+number_of_agents: 1
+deployment:
+  agent:
+    ports:
+      0:
+        8080:8080
+    volumes: {}
+---
+public_id: eightballer/http_server:0.1.0:bafybeicp3ubkonolxjgnwgqmaz624qduwzzz74fbjizu77lyvnpo77uv7u
+type: connection
+config:
+  host: 0.0.0.0
+  port: 8888
+  target_skill_id: eightballer/metrics:0.1.0

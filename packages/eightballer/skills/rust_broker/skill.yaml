@@ -1,0 +1,77 @@
+name: rust_broker
+author: eightballer
+version: 0.1.0
+type: skill
+description: The scaffold skill is a scaffold for your own skill implementation.
+license: Apache-2.0
+aea_version: '>=1.0.0, <2.0.0'
+fingerprint:
+  __init__.py: bafybeidkopcagcijp74swyo2z2ziy6g36slnn3f6dby4jet66rf5ofggaq
+  behaviours.py: bafybeibdncago3m2bljd3pyepymxc7pdmajioatze7bnbt2uot42reuj7i
+  dialogues.py: bafybeifjlbssms3v24g4ezc7bty3275jkc3lc7t7fmrf74edzyvdi2m65i
+  handlers.py: bafybeiamimxkwicivkywzgyw3loh5teeru4nm23cqqfqyijs4zkxbnptmq
+  strategy.py: bafybeidmgt4k7hpqcoulo6acosamuhpelj6tsco3gy3dovt35r5f373jke
+  tests/test_skill.py: bafybeid52fwp5aku6sgdjlmlckfn2p32kjjxoix5bakowllijsxqzswfqi
+fingerprint_ignore_patterns: []
+connections:
+- eightballer/prometheus:0.1.1:bafybeicy4ck2wvauo2vh6ji64xrzlgezh27powi6ztokr4yujtf3cft6wi
+- eightballer/shell_command:0.1.0:bafybeiguqm3gl7wyj4uwwoaimlgaebskd726qp7swl3wape5oonxssslte
+contracts: []
+protocols:
+- eightballer/http:0.1.0:bafybeid75xhq7hfdt7sgj7yrn44yj57xrgxscaw34ir46tndfzvodioxme
+- eightballer/shell_command:0.1.0:bafybeidtcfuf3f3uysbax7wmsw2yr6ngvsaiemlifbegqtgby2bszwpgpi
+- eightballer/prometheus:1.0.0:bafybeidxo32tu43ru3xlk3kd5b6xlwf6vaytxvvhtjbh7ag52kexos4ke4
+skills: []
+behaviours:
+  prometheus_behaviour:
+    args: {}
+    class_name: PrometheusBehaviour
+handlers:
+  http_handler:
+    args: {}
+    class_name: HttpHandler
+  prometheus_handler:
+    args: {}
+    class_name: PrometheusHandler
+  shell_command_handler:
+    args: {}
+    class_name: ShellCommandHandler
+models:
+  data_request_model:
+    args:
+      body: ''
+      decimals: 5
+      method: GET
+      outputs: []
+      url: ''
+    class_name: DataRequestModel
+  http_dialogues:
+    args: {}
+    class_name: HttpDialogues
+  prometheus_dialogues:
+    args:
+      enabled: true
+      metrics:
+      - name: num_retrievals
+        type: Gauge
+        description: Number of data retrievals
+        labels: {}
+      - name: num_requests
+        type: Gauge
+        description: Number of data requests served
+        labels: {}
+      - name: memory_usage
+        type: Gauge
+        description: Memory usage of the agent
+        labels: {}
+      - name: cpu_usage
+        type: Gauge
+        description: CPU usage of the agent
+        labels: {}
+    class_name: PrometheusDialogues
+  shell_command_dialogues:
+    args: {}
+    class_name: ShellCommandDialogues
+dependencies: {}
+is_abstract: false
+customs: []

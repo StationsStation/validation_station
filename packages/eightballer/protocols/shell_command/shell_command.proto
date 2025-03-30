@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package aea.eightballer.shell_command.v0_1_0;
+
+message ShellCommandMessage{
+
+  // Custom Types
+  message ErrorCode{
+    enum ErrorCodeEnum {
+      ERROR_CODE_ENUM_COMMAND_EXECUTION_FAILURE = 0;
+      ERROR_CODE_ENUM_TIMEOUT_ERROR = 1;
+      ERROR_CODE_ENUM_INVALID_COMMAND = 2;
+    }
+    ErrorCodeEnum error_code = 1;
+  }
+
+
+  // Performatives and contents
+  message Execute_Command_Performative{
+    string command = 1;
+    repeated string args = 2;
+    map<string, string> options = 3;
+    int32 timeout = 4;
+    bool timeout_is_set = 5;
+  }
+
+  message Command_Result_Performative{
+    string stdout = 1;
+    string stderr = 2;
+    int32 exit_code = 3;
+  }
+
+  message Execution_Error_Performative{
+    ErrorCode error = 1;
+    string message = 2;
+    bool message_is_set = 3;
+  }
+
+
+  oneof performative{
+    Command_Result_Performative command_result = 5;
+    Execute_Command_Performative execute_command = 6;
+    Execution_Error_Performative execution_error = 7;
+  }
+}
