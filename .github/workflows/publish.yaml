@@ -125,8 +125,8 @@ jobs:
           export PLATFORM_TAG=$(echo ${{ matrix.docker_platform }} | tr '/' '-')
           docker buildx build \
             --platform=${{ matrix.docker_platform }} \
-            --tag $IMAGE_NAME:${RELEASE_VERSION}-$PLAFORM_TAG \
-            --tag $IMAGE_NAME:latest-${{ matrix.docker_platform }} \
+            --tag $IMAGE_NAME:${RELEASE_VERSION}-$PLATFORM_TAG \
+            --tag $IMAGE_NAME:latest-$PLATFORM_TAG \
             --load \
             .
         shell: bash
