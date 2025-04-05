@@ -91,12 +91,42 @@ jobs:
     # Docker
     env:
       DOCKER_BUILDKIT: 1
+      VERSION: ${{ github.event.inputs.version || github.event.release.tag_name || github.event.release.name || github.event.release.body }}
+      IMAGE_NAME: yourorg/app
+
     # Needed
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+            args: '--target aarch64-apple-darwin'
+            docker_platform: 'linux/arm64,linux/amd64'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+            docker_platform: 'linux/arm64,linux/amd64'
+          - platform: 'ubuntu-22.04'
+            args: ''
+            docker_platform: 'linux/amd64'
+
+          - platform: 'windows-latest'
+            args: ''
+            docker_platform: 'windows/amd64' # adjust based on your image build support
+    runs-on: ${{ matrix.platform }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true
 
-      - name: build docker image
-        run: ls #docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
+      - name: Build platform specific image using buildx
+        run: |
+          docker buildx build \
+            --platform=${{ matrix.docker_platform }} \
+            --tag $IMAGE_NAME:${RELEASE_VERSION}-${{ matrix.docker_platform }} \
+            --tag $IMAGE_NAME:latest-${{ matrix.docker_platform }} \
+            --load \
+            .
+        shell: bash
