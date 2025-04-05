@@ -114,10 +114,6 @@ jobs:
           docker_platform: 'linux/amd64'
           tag_suffix: 'linux-amd64'
 
-        - os: 'windows-latest'
-          args: '--target x86_64-pc-windows-msvc'
-          docker_platform: 'windows/amd64'
-          tag_suffix: 'windows-amd64'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
