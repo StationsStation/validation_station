@@ -36,6 +36,9 @@ jobs:
         working-directory: ./third_party/agent_runner
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: third_party/agent_runner # this is the key line
+
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
