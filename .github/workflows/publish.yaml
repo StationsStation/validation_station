@@ -112,7 +112,6 @@ jobs:
           - platform: 'windows-latest'
             args: ''
             docker_platform: 'windows/amd64' # adjust based on your image build support
-    runs-on: ${{ matrix.platform }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
