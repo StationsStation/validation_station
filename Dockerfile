@@ -1,5 +1,5 @@
 # ---- Builder ----
-FROM python:3.11 AS builder
+FROM python:3.10 AS builder
 
 # Install Poetry 1.8.3
 RUN pip install --no-cache-dir poetry==1.8.3
@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/tmp/poetry_cache \
     poetry install --only main --no-root
 
 # ---- Runtime ----
-FROM python:3.11 AS runtime
+FROM python:3.10 AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
