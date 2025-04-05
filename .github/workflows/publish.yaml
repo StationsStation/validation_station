@@ -31,6 +31,10 @@ jobs:
             args: ''
 
     runs-on: ${{ matrix.platform }}
+    # We need to set the workdir to the root of the repo so that the tauri action can find the `Cargo.toml` file.
+    defaults:
+      run:
+        working-directory: third_party/agent_runner
     steps:
       - uses: actions/checkout@v4
 
