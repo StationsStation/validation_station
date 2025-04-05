@@ -41,10 +41,6 @@ jobs:
     defaults:
       run:
         working-directory: ./third_party/agent_runner
-    # Docker
-    env:
-      DOCKER_BUILDKIT: 1
-    # Needed
     steps:
       - uses: actions/checkout@v4
       - name: install dependencies (ubuntu only)
@@ -54,12 +50,6 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: build docker image
-        working-directory: ../..
-        run: docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -95,3 +85,18 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+
+  build-docker:
+    # Docker
+    env:
+      DOCKER_BUILDKIT: 1
+    # Needed
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: build docker image
+        run: docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
