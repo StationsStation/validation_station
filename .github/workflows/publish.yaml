@@ -36,10 +36,6 @@ jobs:
         working-directory: ./third_party/agent_runner
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: third_party/agent_runner # this is the key line
-
-
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
@@ -51,7 +47,8 @@ jobs:
         with:
           node-version: lts/*
           cache: 'yarn' # Set this to npm, yarn or pnpm.
-          working-directory: ./third_party/agent_runner
+          cache-dependency-path: third_party/agent_runner/yarn.lock
+
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
