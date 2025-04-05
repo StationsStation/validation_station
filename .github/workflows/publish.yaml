@@ -56,9 +56,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: build docker image
-        working-directory: ../..
-        run: docker buildx build --platform=${{ matrix.docker_platform }} . -t test
+        working-directory: ./../..
+        run: docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
 
       - name: setup node
         uses: actions/setup-node@v4
