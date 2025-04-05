@@ -99,19 +99,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+          - os: 'macos-latest'
             args: '--target aarch64-apple-darwin'
-            docker_platform: 'linux/arm64,linux/amd64'
-          - platform: 'macos-latest' # for Intel based macs.
+            docker_platform: 'linux/arm64'
+            tag_suffix: 'arm64'
+
+          - os: 'macos-latest'
             args: '--target x86_64-apple-darwin'
-            docker_platform: 'linux/arm64,linux/amd64'
-          - platform: 'ubuntu-22.04'
+            docker_platform: 'linux/amd64'
+            tag_suffix: 'amd64'
+
+          - os: 'ubuntu-22.04'
             args: ''
             docker_platform: 'linux/amd64'
+            tag_suffix: 'amd64'
 
-          - platform: 'windows-latest'
+          - os: 'windows-latest'
             args: ''
-            docker_platform: 'windows/amd64' # adjust based on your image build support
+            docker_platform: 'windows/amd64'
+            tag_suffix: 'windows-amd64'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -125,8 +131,8 @@ jobs:
           export PLATFORM_TAG=$(echo ${{ matrix.docker_platform }} | tr '/' '-')
           docker buildx build \
             --platform=${{ matrix.docker_platform }} \
-            --tag $IMAGE_NAME:${RELEASE_VERSION}-$PLATFORM_TAG \
-            --tag $IMAGE_NAME:latest-$PLATFORM_TAG \
+            --tag $IMAGE_NAME:${RELEASE_VERSION}--${{ matrix.tag_suffix }}  \
+            --tag $IMAGE_NAME:latest--${{ matrix.tag_suffix }} \
             --load \
             .
         shell: bash
