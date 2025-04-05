@@ -51,6 +51,7 @@ jobs:
         with:
           node-version: lts/*
           cache: 'yarn' # Set this to npm, yarn or pnpm.
+          working-directory: ./third_party/agent_runner
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
