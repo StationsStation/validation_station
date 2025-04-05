@@ -6,6 +6,10 @@ use bollard::Docker;
 use chrono::Utc;
 use futures::StreamExt;
 use tokio::runtime::Runtime;
+use rand::seq::SliceRandom;
+
+use rand;
+
 
 mod types;
 use crate::types::{Agent, AgentStatus, UserConfiguration};
@@ -33,6 +37,17 @@ fn parse_agent_status(raw: &str) -> AgentStatus {
     } else {
         AgentStatus::Stopped
     }
+}
+
+fn generate_agent_name() -> String {
+    let adjectives = ["quick", "lazy", "sleepy", "happy", "sad", "angry", "funny", "serious", "curious", "brave", "smart", "silly", "shy", "bold", "calm", "wild", "friendly", "grumpy", "playful", "mischievous"];
+    let names = ["cat", "dog", "fox", "bear", "lion", "tiger", "wolf", "eagle", "hawk", "shark", "whale", "dolphin", "octopus", "frog", "rabbit", "squirrel", "deer", "zebra", "giraffe", "elephant"];
+    let words = ["agent", "bot", "unit", "module", "component", "device", "system", "entity", "object", "process", "task", "operation", "function", "service", "application", "program", "script", "daemon", "worker"];
+    let mut rng = rand::thread_rng(); // Create a random number generator
+    let word = words.choose(&mut rng).unwrap_or(&"agent");
+    let adjective = adjectives.choose(&mut rng).unwrap_or(&"quick");
+    let name = names.choose(&mut rng).unwrap_or(&"cat");
+    format!("{}-{}-{}", word, adjective, name)
 }
 
 async fn container_exists(id: &str) -> bool {
@@ -76,10 +91,6 @@ async fn get_container_status() -> Vec<Agent> {
     result
 }
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command]
 fn get_container_status_command() -> Vec<Agent> {
@@ -187,7 +198,9 @@ fn start_docker_container(config: UserConfiguration) -> Result<(), String> {
             ..Default::default()
         };
 
-        let create_options = CreateContainerOptions { name: "test-agent", platform: None };
+
+        let name = generate_agent_name();
+        let create_options = CreateContainerOptions { name, platform: None };
 
         let container = docker
             .create_container(Some(create_options), container_config)
@@ -218,7 +231,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
             start_container_command,
             stop_container_command,
             pause_container_command,
