@@ -91,7 +91,7 @@ jobs:
     # Docker
     env:
       DOCKER_BUILDKIT: 1
-      VERSION: ${{ github.event.inputs.version || github.event.release.tag_name || github.event.release.name || github.event.release.body }}
+      VERSION: 0.1.0
       IMAGE_NAME: yourorg/app
 
     # Needed
