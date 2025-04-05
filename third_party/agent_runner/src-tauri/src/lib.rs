@@ -1,18 +1,20 @@
+use bollard::container::{
+    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions,
+};
+use bollard::models::HostConfig;
+use bollard::Docker;
+use chrono::Utc;
+use futures::StreamExt;
+use tokio::runtime::Runtime;
 
 mod types;
-use shiplift::{Docker, LogsOptions, ContainerOptions};
-use futures::stream::StreamExt; // not futures_util
-use std::str;
-use tauri_plugin_dialog;
+use crate::types::{Agent, AgentStatus, UserConfiguration};
 
-use tokio::runtime::Runtime;
-use crate::types::AgentStatus;
-use crate::types::Agent;
-use crate::types::UserConfiguration;
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn get_docker_client() -> Docker {
+    Docker::connect_with_local_defaults().unwrap_or_else(|_| {
+        eprintln!("Failed to connect to Docker");
+        std::process::exit(1);
+    })
 }
 
 fn parse_agent_status(raw: &str) -> AgentStatus {
@@ -33,45 +35,51 @@ fn parse_agent_status(raw: &str) -> AgentStatus {
     }
 }
 
+async fn container_exists(id: &str) -> bool {
+    let docker = get_docker_client();
+    let containers = docker
+        .list_containers(None::<ListContainersOptions<String>>)
+        .await
+        .unwrap_or_default();
+
+    containers.iter().any(|c| c.id.as_deref() == Some(id))
+}
 
 async fn get_container_status() -> Vec<Agent> {
-    let docker = Docker::new();
-    let containers = docker.containers();
+    let docker = get_docker_client();
+    let containers = docker
+        .list_containers(None::<ListContainersOptions<String>>)
+        .await
+        .unwrap_or_default();
 
     let mut result = vec![];
 
-    match containers.list(&Default::default()).await {
-        Ok(list) => {
-            for container in list {
-                if container.image.contains("test") {
-                    let raw_status = container.status.clone();
-                    println!("Container ID: {}", container.id);
-                    println!("Container Status: {}", raw_status);
-                    result.push(Agent {
-                        id: container.id,
-                        status: parse_agent_status(raw_status.as_str()),
-                        last_seen_timestamp: chrono::Utc::now().to_rfc3339(),
-                        address: container.names.get(0).unwrap_or(&"".to_string()).to_string(),
-                    });
-                }
+    for container in containers {
+        if let Some(image) = &container.image {
+            if image.contains("test") {
+                let raw_status = container.status.clone().unwrap_or_default();
+                result.push(Agent {
+                    id: container.id.unwrap_or_default(),
+                    status: parse_agent_status(&raw_status),
+                    last_seen_timestamp: Utc::now().to_rfc3339(),
+                    address: container
+                        .names
+                        .unwrap_or_default()
+                        .get(0)
+                        .unwrap_or(&"".to_string())
+                        .to_string(),
+                });
             }
-        }
-        Err(e) => {
-            eprintln!("Error listing containers: {}", e);
         }
     }
 
     result
 }
 
-
-// We have a function for configuring the Docker container
-// and starting it. This function can be called from the Tauri command.
-// This is the command that will be called from the frontend
-// to start the Docker container.
-// You can also refactor this to return a result or an error
-// if you want to handle errors in the frontend.
-
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
 
 #[tauri::command]
 fn get_container_status_command() -> Vec<Agent> {
@@ -81,20 +89,19 @@ fn get_container_status_command() -> Vec<Agent> {
 
 #[tauri::command]
 fn list_agents() -> Vec<Agent> {
-    let rt = Runtime::new().expect("Failed to create Tokio runtime");
-    rt.block_on(get_container_status())
+    get_container_status_command()
 }
-
 
 #[tauri::command]
 async fn stop_container_command(id: String) -> Result<String, String> {
-    println!("Stopping container with ID: {}", id);
+    let docker = get_docker_client();
 
-    let docker = Docker::new();
-    let container = docker.containers().get(&id);
+    if !container_exists(&id).await {
+        return Err("Container not found.".into());
+    }
 
-    container
-        .stop(None)
+    docker
+        .stop_container(&id, None)
         .await
         .map(|_| format!("Stopped container: {}", id))
         .map_err(|e| format!("Failed to stop container {}: {}", id, e))
@@ -102,11 +109,14 @@ async fn stop_container_command(id: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn pause_container_command(id: String) -> Result<String, String> {
-    let docker = Docker::new();
-    let container = docker.containers().get(&id);
+    let docker = get_docker_client();
 
-    container
-        .pause()
+    if !container_exists(&id).await {
+        return Err("Container not found.".into());
+    }
+
+    docker
+        .pause_container(&id)
         .await
         .map(|_| format!("Paused container: {}", id))
         .map_err(|e| format!("Failed to pause container {}: {}", id, e))
@@ -114,123 +124,83 @@ async fn pause_container_command(id: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn unpause_container_command(id: String) -> Result<String, String> {
-    let docker = Docker::new();
-    let container = docker.containers().get(&id);
+    let docker = get_docker_client();
 
-    container
-        .unpause()
+    if !container_exists(&id).await {
+        return Err("Container not found.".into());
+    }
+
+    docker
+        .unpause_container(&id)
         .await
         .map(|_| format!("Unpaused container: {}", id))
         .map_err(|e| format!("Failed to unpause container {}: {}", id, e))
 }
 
-
 #[tauri::command]
 async fn get_container_logs(id: String) -> Result<String, String> {
-    let docker = Docker::new();
+    let docker = get_docker_client();
 
-    let mut logs = docker
-        .containers()
-        .get(&id)
-        .logs(&LogsOptions::builder()
-            .stdout(true)
-            .stderr(true)
-            .follow(false) // you can toggle this for live logs
-            .build());
+    let mut logs = docker.logs(
+        &id,
+        Some(LogsOptions::<String> {
+            stdout: true,
+            stderr: true,
+            follow: false,
+            ..Default::default()
+        }),
+    );
 
     let mut output = String::new();
 
-    while let Some(result) = logs.next().await {
-        match result {
-            Ok(bytes) => {
-                output.push_str(&String::from_utf8_lossy(&bytes));
+    while let Some(log_result) = logs.next().await {
+        match log_result {
+            Ok(bollard::container::LogOutput::StdOut { message })
+            | Ok(bollard::container::LogOutput::StdErr { message }) => {
+                output.push_str(&String::from_utf8_lossy(&message));
             }
-            Err(e) => {
-                return Err(format!("Error streaming logs: {}", e));
-            }
+            Ok(_) => {}
+            Err(e) => return Err(format!("Error streaming logs: {}", e)),
         }
     }
 
     Ok(output)
 }
 
-
-// #[tauri::command]
-// fn start_container_command(config: UserConfiguration) -> String {
-//     match start_docker_container(config) {
-//         Ok(_) => "Container start triggered!".into(),
-//         Err(e) => format!("Failed to start container: {}", e),
-//     }
-// }
-// #[tauri::command]
-// fn start_container_command() -> String {
-//     start_docker_container(); // You can refactor this to return a result
-//     "Container start triggered!".into()
-// }
-
-// fn start_docker_container() {
-//     // Create a new Tokio runtime for async execution
-//     let rt = Runtime::new().expect("Failed to create Tokio runtime");
-
-//     rt.block_on(async {
-//         let docker = Docker::new();
-
-//         let options = ContainerOptions::builder("test")
-//             .build();
-
-//         match docker.containers().create(&options).await {
-//             Ok(info) => {
-//                 let id = info.id;
-//                 println!("Created container with ID: {}", id);
-
-//                 match docker.containers().get(&id).start().await {
-//                     Ok(_) => println!("Container started successfully."),
-//                     Err(e) => eprintln!("Error starting container: {}", e),
-//                 }
-//             }
-//             Err(e) => eprintln!("Error creating container: {}", e),
-//         }
-//     });
-// }
-
-
 fn start_docker_container(config: UserConfiguration) -> Result<(), String> {
-    // Create a new Tokio runtime for async execution
     let rt = Runtime::new().map_err(|e| format!("Failed to create Tokio runtime: {}", e))?;
 
     rt.block_on(async {
-        let docker = Docker::new();
-
-        // Use the UserConfiguration fields (e.g., private_key_path, environment_path)
-        println!(
-            "Using private key path: {} and environment path: {}",
-            config.private_key_path, config.environment_path
-        );
+        let docker = get_docker_client();
 
         let volume_bindings = vec![
             format!("{}:/app/ethereum_private_key.txt:ro", config.private_key_path),
             format!("{}:/app/.env:ro", config.environment_path),
         ];
 
-        let options = ContainerOptions::builder("test")
-            .volumes(volume_bindings.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
-            .build();
+        let container_config = Config {
+            image: Some("test"),
+            host_config: Some(HostConfig {
+                binds: Some(volume_bindings),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
 
-        match docker.containers().create(&options).await {
-            Ok(info) => {
-                let id = info.id;
-                println!("Created container with ID: {}", id);
+        let create_options = CreateContainerOptions { name: "test-agent", platform: None };
 
-                match docker.containers().get(&id).start().await {
-                    Ok(_) => {
-                        println!("Container started successfully.");
-                        Ok(())
-                    }
-                    Err(e) => Err(format!("Error starting container: {}", e)),
-                }
-            }
-            Err(e) => Err(format!("Error creating container: {}", e)),
-        }
+        let container = docker
+            .create_container(Some(create_options), container_config)
+            .await
+            .map_err(|e| format!("Error creating container: {}", e))?;
+
+        docker
+            .start_container(&container.id, None::<StartContainerOptions<String>>)
+            .await
+            .map_err(|e| format!("Error starting container: {}", e))?;
+
+        println!("Started container {}", container.id);
+        Ok(())
     })
 }
 
@@ -254,8 +224,9 @@ pub fn run() {
             pause_container_command,
             unpause_container_command,
             get_container_logs,
-            list_agents
-            ])
+            list_agents,
+            get_container_status_command
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
