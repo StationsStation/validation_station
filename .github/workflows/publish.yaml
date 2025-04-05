@@ -23,12 +23,18 @@ jobs:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
+            docker_platform: 'linux/arm64,linux/amd64'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
+            docker_platform: 'linux/arm64,linux/amd64'
           - platform: 'ubuntu-22.04'
             args: ''
+            docker_platform: 'linux/amd64'
+
           - platform: 'windows-latest'
             args: ''
+            docker_platform: 'windows/amd64' # adjust based on your image build support
+
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -64,6 +70,13 @@ jobs:
       - name: install frontend dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: yarn install # change this to npm or pnpm depending on which one you use.
+
+      - name: build docker image
+        working-directory: ../..
+        run: |
+          docker buildx build \
+            --platform ${{ matrix.docker_platform }}
+            --output type=docker
 
       - uses: tauri-apps/tauri-action@v0
         env:
