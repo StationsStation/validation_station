@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/tmp/poetry_cache \
     poetry install --only main --no-root
 
 # ---- Runtime ----
-FROM python:3.11-slim AS runtime
+FROM python:3.11 AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
