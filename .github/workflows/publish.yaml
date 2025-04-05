@@ -122,9 +122,10 @@ jobs:
 
       - name: Build platform specific image using buildx
         run: |
+          export PLATFORM_TAG=$(echo ${{ matrix.docker_platform }} | tr '/' '-')
           docker buildx build \
             --platform=${{ matrix.docker_platform }} \
-            --tag $IMAGE_NAME:${RELEASE_VERSION}-${{ matrix.docker_platform }} \
+            --tag $IMAGE_NAME:${RELEASE_VERSION}-$PLAFORM_TAG \
             --tag $IMAGE_NAME:latest-${{ matrix.docker_platform }} \
             --load \
             .
