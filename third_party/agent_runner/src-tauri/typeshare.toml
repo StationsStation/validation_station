@@ -1,0 +1,5 @@
+# typeshare.toml
+[tool.typeshare]
+language = "typescript"
+go-package = "ignore_this_for_ts"
+
