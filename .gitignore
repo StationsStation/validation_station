@@ -64,7 +64,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .*
 !.gitignore
-!.github/*
+!.github
 !.dockerignore
 
 __pycache__
