@@ -84,6 +84,6 @@ jobs:
         with:
           body: ${{ steps.changelog.outputs.changelog }}
           files: packages/packages.json
-          draft: false
+          draft: true
           prerelease: false
 

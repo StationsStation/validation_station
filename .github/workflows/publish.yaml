@@ -82,10 +82,9 @@ jobs:
           tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: 'App v__VERSION__'
           releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
-
 
   build-docker:
     # Docker
@@ -113,7 +112,6 @@ jobs:
           args: '--target x86_64-unknown-linux-gnu'
           docker_platform: 'linux/amd64'
           tag_suffix: 'linux-amd64'
-
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
