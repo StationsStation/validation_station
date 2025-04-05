@@ -1,5 +1,5 @@
 # ---- Builder ----
-FROM python:3.11-slim AS builder
+FROM python:3.11 AS builder
 
 # Install Poetry 1.8.3
 RUN pip install --no-cache-dir poetry==1.8.3
