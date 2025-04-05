@@ -99,4 +99,4 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: build docker image
-        run: docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
+        run: ls #docker buildx build --platform=${{ matrix.docker_platform }} . -t test --output=type=docker --load
