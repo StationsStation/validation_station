@@ -99,25 +99,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-            docker_platform: 'linux/arm64'
-            tag_suffix: 'arm64'
+        - os: 'macos-latest'
+          args: '--target aarch64-apple-darwin'
+          docker_platform: 'linux/arm64'
+          tag_suffix: 'darwin-arm64'
 
-          - os: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-            docker_platform: 'linux/amd64'
-            tag_suffix: 'amd64'
+        - os: 'macos-latest'
+          args: '--target x86_64-apple-darwin'
+          docker_platform: 'linux/amd64'
+          tag_suffix: 'darwin-amd64'
 
-          - os: 'ubuntu-22.04'
-            args: ''
-            docker_platform: 'linux/amd64'
-            tag_suffix: 'amd64'
+        - os: 'ubuntu-22.04'
+          args: '--target x86_64-unknown-linux-gnu'
+          docker_platform: 'linux/amd64'
+          tag_suffix: 'linux-amd64'
 
-          - os: 'windows-latest'
-            args: ''
-            docker_platform: 'windows/amd64'
-            tag_suffix: 'windows-amd64'
+        - os: 'windows-latest'
+          args: '--target x86_64-pc-windows-msvc'
+          docker_platform: 'windows/amd64'
+          tag_suffix: 'windows-amd64'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
