@@ -90,8 +90,8 @@ jobs:
         id: package-linux
         run: |
           cp ./src-tauri/target/release/agent_runner ./agent_runner_$(echo $RELEASE_VERSION)_amd64
-          tar -czf agent_runner_${version}_amd64.tar.gz agent_runner_$(echo $RELEASE_VERSION)_amd64
-          echo "file=agent_runner_${version}_amd64.tar.gz" >> $GITHUB_OUTPUT
+          tar -czf agent_runner_$(echo $RELEASE_VERSION)_amd64.tar.gz agent_runner_$(echo $RELEASE_VERSION)_amd64
+          echo "file=agent_runner_$(echo $RELEASE_VERSION)_amd64.tar.gz" >> $GITHUB_OUTPUT
       - name: Upload Linux binary to GitHub release
         if: matrix.platform == 'ubuntu-22.04'
         uses: softprops/action-gh-release@v1
