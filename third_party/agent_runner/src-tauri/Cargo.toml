@@ -28,5 +28,9 @@ typeshare = "1.0.4"
 futures = "0.3"
 tauri-plugin-dialog = "2.0.0-beta.4" # match your tauri version
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
-bollard = "*"
+bollard = "0.18.1"
 rand = { version = "0.8"  }
+dirs = "4.0"
+
+base64 = "0.21"
+

@@ -2,23 +2,141 @@ use bollard::container::{
     Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions,
 };
 use bollard::models::HostConfig;
+
 use bollard::Docker;
 use chrono::Utc;
 use futures::StreamExt;
 use tokio::runtime::Runtime;
 use rand::seq::SliceRandom;
-
 use rand;
-
-
+use bollard::models::CreateImageInfo;
+use bollard::image::CreateImageOptions;
 mod types;
 use crate::types::{Agent, AgentStatus, UserConfiguration};
 
+const IMAGE_NAME: &str = "8ball030/capitalisation_station:latest";
+
+use std::path::PathBuf;
+use std::fs;
+use std::process;
+use dirs::home_dir;
+use bollard::auth::DockerCredentials;
+use std::collections::HashMap;
+use serde::Deserialize;
+
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine as _;
+const REGISTRY: &str = "https://index.docker.io/v1/"; // Adjust for private registries
+
+/// Connect to Docker based on the current platform.
 fn get_docker_client() -> Docker {
-    Docker::connect_with_local_defaults().unwrap_or_else(|_| {
-        eprintln!("Failed to connect to Docker");
-        std::process::exit(1);
+    #[cfg(target_os = "windows")]
+    {
+        Docker::connect_with_named_pipe_defaults().unwrap_or_else(|e| {
+            eprintln!("❌ Failed to connect to Docker via named pipe: {}", e);
+            process::exit(1);
+        })
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Docker::connect_with_unix_defaults().unwrap_or_else(|e| {
+            eprintln!("❌ Failed to connect to Docker via unix socket: {}", e);
+            process::exit(1);
+        })
+    }
+}
+
+/// Get the path to Docker's config.json
+fn get_docker_config_path() -> PathBuf {
+    home_dir()
+        .map(|home| home.join(".docker").join("config.json"))
+        .unwrap_or_else(|| {
+            eprintln!("❌ Could not determine the home directory.");
+            process::exit(1);
+        })
+}
+
+#[derive(Debug, Deserialize)]
+struct DockerConfig {
+    auths: HashMap<String, RegistryAuth>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RegistryAuth {
+    auth: Option<String>,
+}
+
+/// Try to extract credentials for a specific registry from ~/.docker/config.json
+fn get_credentials_for_registry(registry: &str) -> Option<DockerCredentials> {
+    let path = get_docker_config_path();
+    let contents = fs::read_to_string(path).ok()?;
+    let config: DockerConfig = serde_json::from_str(&contents).ok()?;
+    let entry = config.auths.get(registry)?;
+
+    let auth_str = entry.auth.as_ref()?;
+    let decoded = STANDARD.decode(auth_str).ok()?;
+    let decoded_str = String::from_utf8(decoded).ok()?;
+    let parts: Vec<&str> = decoded_str.splitn(2, ':').collect();
+
+    if parts.len() != 2 {
+        println!("❌ Invalid auth format in config.json");
+        return None;
+    }
+
+    Some(DockerCredentials {
+        username: Some(parts[0].to_string()),
+        password: Some(parts[1].to_string()),
+        serveraddress: Some(registry.to_string()),
+        ..Default::default()
     })
+}
+
+/// Pull a Docker image, streaming output status.
+pub async fn fetch_docker_image() -> Result<(), String> {
+    let docker = get_docker_client();
+
+    // Check if the image already exists
+    let images = docker
+        .list_images(None::<bollard::image::ListImagesOptions<String>>)
+        .await
+        .unwrap_or_default();
+    if images.iter().any(|image| {
+        image.repo_tags.iter().any(|tag| tag == IMAGE_NAME)
+    }) {
+        println!("✅ Image {} already exists", IMAGE_NAME);
+        return Ok(());
+    }
+    
+    // If not, we pull it
+    println!("🛠️ Pulling image {}...", IMAGE_NAME);
+
+    let pull_options = Some(CreateImageOptions {
+        from_image: IMAGE_NAME,
+        ..Default::default()
+    });
+
+    let credentials = get_credentials_for_registry(REGISTRY);
+
+    let mut stream = docker.create_image(pull_options, None, credentials);
+
+    println!("🚀 Pulling image: {}", IMAGE_NAME);
+
+    while let Some(result) = stream.next().await {
+        match result {
+            Ok(CreateImageInfo { status: Some(status), .. }) => {
+                println!("📦 {}", status);
+            }
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("❌ Error pulling image: {}", e);
+                return Err(format!("Failed to pull image {}: {}", IMAGE_NAME, e));
+            }
+        }
+    }
+
+    println!("✅ Image {} pulled successfully", IMAGE_NAME);
+    Ok(())
 }
 
 fn parse_agent_status(raw: &str) -> AgentStatus {
@@ -71,7 +189,7 @@ async fn get_container_status() -> Vec<Agent> {
 
     for container in containers {
         if let Some(image) = &container.image {
-            if image.contains("test") {
+            if image.contains(IMAGE_NAME) {
                 let raw_status = container.status.clone().unwrap_or_default();
                 result.push(Agent {
                     id: container.id.unwrap_or_default(),
@@ -181,16 +299,21 @@ async fn get_container_logs(id: String) -> Result<String, String> {
 fn start_docker_container(config: UserConfiguration) -> Result<(), String> {
     let rt = Runtime::new().map_err(|e| format!("Failed to create Tokio runtime: {}", e))?;
 
+
     rt.block_on(async {
         let docker = get_docker_client();
-
+        if let Err(e) = fetch_docker_image().await {
+            eprintln!("❌ Error pulling image: {}", e);
+            return Err(format!("Failed to pull image {}: {}", IMAGE_NAME, e));
+        }
         let volume_bindings = vec![
             format!("{}:/app/ethereum_private_key.txt:ro", config.private_key_path),
             format!("{}:/app/.env:ro", config.environment_path),
         ];
 
+
         let container_config = Config {
-            image: Some("test"),
+            image: Some(IMAGE_NAME),
             host_config: Some(HostConfig {
                 binds: Some(volume_bindings),
                 ..Default::default()
@@ -198,6 +321,7 @@ fn start_docker_container(config: UserConfiguration) -> Result<(), String> {
             ..Default::default()
         };
 
+        // We pull the image to ensure it's available
 
         let name = generate_agent_name();
         let create_options = CreateContainerOptions { name, platform: None };
@@ -205,24 +329,24 @@ fn start_docker_container(config: UserConfiguration) -> Result<(), String> {
         let container = docker
             .create_container(Some(create_options), container_config)
             .await
-            .map_err(|e| format!("Error creating container: {}", e))?;
+            .map_err(|e| format!("❌ Error creating container: {}", e))?;
 
         docker
             .start_container(&container.id, None::<StartContainerOptions<String>>)
             .await
-            .map_err(|e| format!("Error starting container: {}", e))?;
+            .map_err(|e| format!("❌ Error starting container: {}", e))?;
 
-        println!("Started container {}", container.id);
+        println!("🚀 Container started with ID: {}", container.id);
         Ok(())
     })
 }
 
 #[tauri::command]
 fn start_container_command(config: UserConfiguration) -> String {
-    println!("Starting Docker container with config: {:?}", config);
+    println!("🛠️ Starting container with config from user!");
     match start_docker_container(config) {
-        Ok(_) => "Container start triggered!".into(),
-        Err(e) => format!("Failed to start container: {}", e),
+        Ok(_) => "✅ Container started successfully".to_string(),
+        Err(e) => format!("❌ Failed to Start! Error: {}", e),
     }
 }
 

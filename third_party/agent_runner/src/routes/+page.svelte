@@ -30,7 +30,8 @@ async function selectPrivateKey() {
   let isStopping: Record<string, boolean> = {};
 
   let isFollowingLogs = true;
-  let logInterval = 10;
+  let logInterval: number | null = 10;
+
 
 
   // config
@@ -56,11 +57,10 @@ async function selectPrivateKey() {
   let logContainer: HTMLPreElement;
 
   afterUpdate(() => {
-    if (logContainer) {
+    if (logContainer && isFollowingLogs) {
       logContainer.scrollTop = logContainer.scrollHeight;
     }
-  });
-  
+  }); 
   async function openLogsModal(agentId: string) {
     console.log("Opening logs modal for agent:", agentId);
     selectedAgentId = agentId;
@@ -71,12 +71,23 @@ async function selectPrivateKey() {
   async function fetchLogs() {
     if (!selectedAgentId) return;
     logs = await invoke("get_container_logs", { id: selectedAgentId });
+
+    // If following is enabled, scroll to bottom after fetching new logs
+    if (isFollowingLogs && logContainer) {
+      // Use setTimeout to ensure this happens after the DOM updates
+      setTimeout(() => {
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }, 0);
+    }
   }
 
   $: if (isLogsModalOpen && isFollowingLogs && selectedAgentId) {
-    clearInterval(logInterval);
+    cleanupLogInterval();
     logInterval = setInterval(fetchLogs, 3000);
+  } else if (!isLogsModalOpen || !isFollowingLogs) {
+    cleanupLogInterval();
   }
+
 
   async function stopAgent(id: string) {
     isStopping[id] = true;
@@ -103,6 +114,24 @@ async function selectPrivateKey() {
     await fetchAgents(); // refresh list after new agent is started
   }
 
+  function cleanupLogInterval() {
+    if (logInterval) {
+      clearInterval(logInterval);
+      logInterval = null;
+    }
+  }
+
+  // Update the modal close handler
+  function closeLogsModal() {
+    isLogsModalOpen = false;
+    cleanupLogInterval();
+  }
+
+  // Add to onDestroy
+  onDestroy(() => {
+    clearInterval(interval);
+    cleanupLogInterval();
+  });
   // Fetch agents when the component mounts
 
 
@@ -155,7 +184,7 @@ async function selectPrivateKey() {
 
   <div class="container">
   {#if isLogsModalOpen}
-    <div class="modal-backdrop" on:click={() => isLogsModalOpen = false}></div>
+    <button class="modal-backdrop" aria-label="Close logs modal" on:click={() => isLogsModalOpen = false} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') isLogsModalOpen = false; }}></button>
     <div class="log-modal">
       <div class="modal-header">
         <div class="modal-title">
@@ -168,7 +197,7 @@ async function selectPrivateKey() {
             <input type="checkbox" bind:checked={isFollowingLogs} />
             Follow
           </label>
-          <button class="btn-close" on:click={() => isLogsModalOpen = false}>×</button>
+          <button class="btn-close" on:click={closeLogsModal}>×</button>
         </div>
       </div>
         <pre class="terminal-log" bind:this={logContainer}>
@@ -198,14 +227,14 @@ async function selectPrivateKey() {
       {#if isConfigModalOpen}
         <div class="status-card config-card">
           <div class="config-field">
-            <label>🔐 <strong>Private Key Path</strong></label>
-            <code>{privateKeyPath || '[Not selected]'}</code>
+            <label for="private-key-path">🔐 <strong>Private Key Path</strong></label>
+            <input id="private-key-path" type="text" value={privateKeyPath} readonly />
             <button on:click={selectPrivateKey}>Select Private Key</button>
           </div>
 
           <div class="config-field">
-            <label>🌱 <strong>Environment Path</strong></label>
-            <code>{environmentPath || '[Not selected]'}</code>
+            <label for="environment-path">🌱 <strong>Environment Path</strong></label>
+            <code id="environment-path">{environmentPath || '[Not selected]'}</code>
             <button on:click={selectEnvironmentFile}>Select Environment</button>
           </div>
         </div>
@@ -217,7 +246,7 @@ async function selectPrivateKey() {
   <section class="agent-status">
     <div class="status-bar">
       <h2 class="status-title">:: AGENTS</h2>
-      <button class="new-agent-btn" on:click={createNewAgent}>+ New Agent</button>
+      <button class="create" on:click={createNewAgent}>+ New Agent</button>
     </div>
 
     
@@ -754,11 +783,6 @@ button.logs:disabled:hover {
   margin-bottom: 0.5rem;
 }
 
-.info-row strong {
-  color: #00ffaa;
-  margin-right: 0.5rem;
-}
-
 .address, .container-id {
   color: #00ffcc;
   font-family: 'Share Tech Mono', monospace;
@@ -788,12 +812,6 @@ button.logs:disabled:hover {
   width: 100%;
 }
 
-/* Make the buttons slightly smaller to fit better */
-.status-card .btn {
-  padding: 0.4em 0.8em;
-  margin: 0.2rem;
-  font-size: 0.9rem;
-}
 /* Schema for config card */
 .config-card {
   display: flex;
