@@ -28,7 +28,6 @@ jobs:
           - platform: 'ubuntu-22.04'
             args: ''
             docker_platform: 'linux/amd64'
-
           - platform: 'windows-latest'
             args: ''
             docker_platform: 'windows/amd64' # adjust based on your image build support
@@ -39,6 +38,8 @@ jobs:
     defaults:
       run:
         working-directory: ./third_party/agent_runner
+    env:
+      RELEASE_VERSION: 0.1.0
     steps:
       - uses: actions/checkout@v4
       - name: install dependencies (ubuntu only)
@@ -83,6 +84,22 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Package Linux binary
+        if: matrix.platform == 'ubuntu-22.04'
+        id: package-linux
+        run: |
+          cp ./src-tauri/target/release/agent_runner ./agent_runner_$(echo $RELEASE_VERSION)_amd64
+          tar -czf agent_runner_${version}_amd64.tar.gz agent_runner_$(echo $RELEASE_VERSION)_amd64
+          echo "file=agent_runner_${version}_amd64.tar.gz" >> $GITHUB_OUTPUT
+      - name: Upload Linux binary to GitHub release
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.RELEASE_VERSION}}
+          files: ${{ steps.package-linux.outputs.file }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-docker:
     # Docker
