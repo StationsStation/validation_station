@@ -31,23 +31,5 @@ url = "2.4.0"
 tokio-websockets = { version = "0.11.3", features = ["client", "openssl", "fastrand"] }
 reqwest = { version = "0.12.15", features = ["json"] }
 futures-util = "0.3"
-# 
-# 
-# # Ethereum-specific libraries
-# ethers = { version = "2.0.13", features = ["eip712"] }
-# secp256k1 = { version = "0.28.2", features = ["recovery"] }
-# 
-# 
-# # Redis client
-# redis = { version = "0.24.0", features = ["tokio-comp", "connection-manager"] }
-# 
-# # Utilities
-# uuid = { version = "1.7.0", features = ["v4", "serde"] }
-# chrono = { version = "0.4.34", features = ["serde"] }
-# thiserror = "1.0.56"
-# tracing = "0.1.40"
-# tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-# 
-# # Configuration
-# config = "0.13.4"
-# dotenv = "0.15.0"
+zstd = "0.13"
+
