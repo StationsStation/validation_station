@@ -22,6 +22,8 @@ message ShellCommandMessage{
     map<string, string> options = 3;
     int32 timeout = 4;
     bool timeout_is_set = 5;
+    bytes env_vars = 6;
+    bool env_vars_is_set = 7;
   }
 
   message Command_Result_Performative{

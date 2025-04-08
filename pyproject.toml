@@ -15,14 +15,14 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-open-aea-ledger-solana = "==1.64.0"
-open-aea-ledger-cosmos = "==1.64.0"
-open-aea-ledger-ethereum = "==1.64.0"
-open-aea = "==1.64.0"
-open-aea-cli-ipfs = "==1.64.0"
-open-aea-test-autonomy = "==0.19.4"
-open-autonomy = "==0.19.4"
-autonomy-dev = {extras = ["all"], version = ">=0.2.64,<=0.2.138"}
+open-aea-ledger-solana = "==1.65.0"
+open-aea-ledger-cosmos = "==1.65.0"
+open-aea-ledger-ethereum = "==1.65.0"
+open-aea = "==1.65.0"
+open-aea-cli-ipfs = "==1.65.0"
+open-aea-test-autonomy = "==0.19.7"
+open-autonomy = "==0.19.7"
+autonomy-dev = {version = "==0.2.153", extras = ["all"]}
 paradigm-flood = "^0.3.1"
 lxml = {extras = ["html-clean"], version = "^5.3.1"}
 

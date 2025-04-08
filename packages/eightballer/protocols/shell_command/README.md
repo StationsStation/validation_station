@@ -20,6 +20,7 @@ speech_acts:
     args: pt:list[pt:str]
     options: pt:dict[pt:str, pt:str]
     timeout: pt:optional[pt:int]
+    env_vars: pt:optional[pt:bytes]
   command_result:
     stdout: pt:str
     stderr: pt:str

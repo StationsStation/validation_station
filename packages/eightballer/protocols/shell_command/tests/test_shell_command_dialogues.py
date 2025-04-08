@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2024 eightballer
+#   Copyright 2025 eightballer
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,12 +20,22 @@
 """Test dialogues module for shell_command protocol."""
 
 # pylint: disable=too-many-statements,too-many-locals,no-member,too-few-public-methods,redefined-builtin
+import os
+
+import yaml
 from aea.test_tools.test_protocol import BaseProtocolDialoguesTestCase
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.dialogues import (
     ShellCommandDialogue,
-    ShellCommandDialogues,
+    BaseShellCommandDialogues,
 )
+from packages.eightballer.protocols.shell_command.custom_types import ErrorCode
+
+
+def load_data(custom_type):
+    """Load test data."""
+    with open(f"{os.path.dirname(__file__)}/dummy_data.yaml", "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)[custom_type]
 
 
 class TestDialoguesShellCommand(BaseProtocolDialoguesTestCase):
@@ -35,7 +45,7 @@ class TestDialoguesShellCommand(BaseProtocolDialoguesTestCase):
 
     DIALOGUE_CLASS = ShellCommandDialogue
 
-    DIALOGUES_CLASS = ShellCommandDialogues
+    DIALOGUES_CLASS = BaseShellCommandDialogues
 
     ROLE_FOR_THE_FIRST_MESSAGE = ShellCommandDialogue.Role.AGENT  # CHECK
 
@@ -47,4 +57,5 @@ class TestDialoguesShellCommand(BaseProtocolDialoguesTestCase):
             args=("some str",),
             options={"some str": "some str"},
             timeout=12,
+            env_vars=b"some_bytes",
         )

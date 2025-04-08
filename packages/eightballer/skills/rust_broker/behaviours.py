@@ -18,6 +18,7 @@
 
 """This package contains a scaffold of a behaviour."""
 
+import json
 from subprocess import Popen
 from pathlib import Path
 import subprocess
@@ -155,11 +156,15 @@ class PrometheusBehaviour(TickerBehaviour):
 
         self.context.logger.info("Creating the rust process.")
 
+
         msg, _ = shell_dialogues.create(
             counterparty=str(SHELL_CONNECTION_ID),
             performative=ShellCommandMessage.Performative.EXECUTE_COMMAND,
-            command="./redis2ws",
-            args=["--port", "8080"],
+            command="./broker",
+            args=("--broker", "--port", "8080", "--host", "0.0.0.0"),
             options={},
+            env_vars=json.dumps({
+                "RUST_LOG": "DEBUG",
+            }).encode("utf-8"),
         )
         self.context.outbox.put_message(message=msg)
