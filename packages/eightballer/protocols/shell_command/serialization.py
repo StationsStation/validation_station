@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2024 eightballer
+#   Copyright 2025 eightballer
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,22 +22,19 @@
 # pylint: disable=too-many-statements,too-many-locals,no-member,too-few-public-methods,redefined-builtin
 from typing import Any, Dict, cast
 
-from aea.mail.base_pb2 import (
-    Message as ProtobufMessage,  # type: ignore
-    DialogueMessage,  # type: ignore
-)
-from aea.protocols.base import (
-    Message,  # type: ignore
-    Serializer,  # type: ignore
-)
+from aea.mail.base_pb2 import DialogueMessage  # type: ignore
+from aea.mail.base_pb2 import Message as ProtobufMessage  # type: ignore
+from aea.protocols.base import Message  # type: ignore
+from aea.protocols.base import Serializer  # type: ignore
+
 from packages.eightballer.protocols.shell_command import (  # type: ignore
     shell_command_pb2,
 )
-from packages.eightballer.protocols.shell_command.message import (  # type: ignore
-    ShellCommandMessage,
-)
 from packages.eightballer.protocols.shell_command.custom_types import (  # type: ignore
     ErrorCode,
+)
+from packages.eightballer.protocols.shell_command.message import (  # type: ignore
+    ShellCommandMessage,
 )
 
 
@@ -76,6 +73,10 @@ class ShellCommandSerializer(Serializer):
                 performative.timeout_is_set = True
                 timeout = msg.timeout
                 performative.timeout = timeout
+            if msg.is_set("env_vars"):
+                performative.env_vars_is_set = True
+                env_vars = msg.env_vars
+                performative.env_vars = env_vars
             shell_command_msg.execute_command.CopyFrom(performative)
         elif performative_id == ShellCommandMessage.Performative.COMMAND_RESULT:
             performative = shell_command_pb2.ShellCommandMessage.Command_Result_Performative()  # type: ignore
@@ -138,6 +139,9 @@ class ShellCommandSerializer(Serializer):
             if shell_command_pb.execute_command.timeout_is_set:
                 timeout = shell_command_pb.execute_command.timeout
                 performative_content["timeout"] = timeout
+            if shell_command_pb.execute_command.env_vars_is_set:
+                env_vars = shell_command_pb.execute_command.env_vars
+                performative_content["env_vars"] = env_vars
         elif performative_id == ShellCommandMessage.Performative.COMMAND_RESULT:
             stdout = shell_command_pb.command_result.stdout
             performative_content["stdout"] = stdout
@@ -160,5 +164,5 @@ class ShellCommandSerializer(Serializer):
             dialogue_reference=dialogue_reference,
             target=target,
             performative=performative,
-            **performative_content,
+            **performative_content
         )

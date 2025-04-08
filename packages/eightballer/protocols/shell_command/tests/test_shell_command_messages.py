@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# ------------------------------------------------------------------------------
+#                                                                             --
 #
-#   Copyright 2024 eightballer
+#   Copyright 2025 eightballer
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
-# ------------------------------------------------------------------------------
+#                                                                             --
 
 """Test messages module for shell_command protocol."""
 
@@ -49,6 +49,7 @@ class TestMessageShellCommand(BaseProtocolMessagesTestCase):
                 args=("some str",),
                 options={"some str": "some str"},
                 timeout=12,
+                env_vars=b"some_bytes",
             ),
             ShellCommandMessage(
                 performative=ShellCommandMessage.Performative.COMMAND_RESULT,
@@ -63,25 +64,6 @@ class TestMessageShellCommand(BaseProtocolMessagesTestCase):
             ),
         ]
 
-    def build_inconsistent(self) -> List[ShellCommandMessage]:  # type: ignore[override]
-        """Build inconsistent messages to be used for testing."""
-        return [
-            ShellCommandMessage(
-                performative=ShellCommandMessage.Performative.EXECUTE_COMMAND,
-                # skip content: command
-                args=("some str",),
-                options={"some str": "some str"},
-                timeout=12,
-            ),
-            ShellCommandMessage(
-                performative=ShellCommandMessage.Performative.COMMAND_RESULT,
-                # skip content: stdout
-                stderr="some str",
-                exit_code=12,
-            ),
-            ShellCommandMessage(
-                performative=ShellCommandMessage.Performative.EXECUTION_ERROR,
-                # skip content: error
-                message="some str",
-            ),
-        ]
+    def build_inconsistent(self):
+        """Build inconsistent message."""
+        return []

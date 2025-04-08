@@ -20,7 +20,9 @@
 # pylint: disable=too-many-instance-attributes, W0511, w0613
 """Shell Command connection and channel."""
 
+import sys
 import asyncio
+import json
 import logging
 import os
 import subprocess
@@ -37,10 +39,11 @@ from aea.protocols.dialogue.base import Dialogue
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.dialogues import (
     ShellCommandDialogue,
-    ShellCommandDialogues as BaseShellCommandDialogues,
+    BaseShellCommandDialogues,
 )
 
 
+sys.stdout.reconfigure(line_buffering=True) 
 CONNECTION_ID = PublicId.from_str("eightballer/shell_command:0.1.0")
 
 
@@ -279,7 +282,7 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
         async def read_stdout():
             while True:
                 output = await process.stdout.readline()
-                if output == b'' and process.returncode is not None:  # If the output is empty, the process is done
+                if process.returncode is not None:  # If the output is empty, the process is done
                     break
                 if output:
                     output = output.decode("utf-8").strip()  # Manually decode bytes to string
@@ -307,12 +310,14 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
         return process, stdout_lines, stderr_lines
 
 
-    async def _run_process(self, command):
+    async def _run_process(self, command, env_vars=None):
         """Run the command and return the process."""
         return await asyncio.create_subprocess_exec(
             *command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env=env_vars if env_vars else None,
+
         )
 
     async def execute_command(self, message: ShellCommandMessage, dialogue: ShellCommandDialogue) -> ShellCommandMessage:
@@ -323,13 +328,19 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
 
         command_list = [command] + list(message.args) + [f"{k}={v}" for k, v in options.items()]
 
+        env_vars = os.environ.copy()
+        if message.env_vars is not None:
+            env_vars_json = message.env_vars.decode("utf-8")
+            env_vars = json.loads(env_vars_json)
+            env_vars.update(env_vars)
+
         stream_output = True
         timeout = 0
 
         async def execute_command(command):
             """Execute the command, stream output, and return the logs."""
             self.logger.info(f"Executing command: {command}")
-            process = await self._run_process(command)
+            process = await self._run_process(command, env_vars=env_vars)
             self.logger.info("Process started: %s", process)
             self._running_processes.add(process)
             future = self._stream_output(process, fmt="", stream_output=stream_output)

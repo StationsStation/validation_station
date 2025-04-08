@@ -8,19 +8,20 @@ description: A protocol for executing command-line instructions between an agent
 license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
-  README.md: bafybeieuspjaw77s5vixboienmarpux3xnk6w4ifimqhgahjmtvlivtjoq
-  __init__.py: bafybeidtohvbcejt4gl5azlhlnrjtuvhjogs6ecgw7elwbig6h5i2os5im
-  custom_types.py: bafybeievujzflp6drzai4nvomlkvjj34zrqu6zhtih4hdpvvyaf43haexy
-  dialogues.py: bafybeig3catnq2hxbxyxr4jqz7r2dkvimg6y6fvweplqz6tghssn5hi3mu
-  message.py: bafybeibm4prxgey65ibatxy6dyznkcvjypgiolqol5shnoj4w2b7pggkau
-  protocol_spec.yaml: bafybeihxtaujovynvfi5lopocnqgp3lmwjiiglyajc7kmqm4x6dgwqqrdu
-  serialization.py: bafybeifc4qhjtice2s3dbqbq52phvo2gl6d77tg4nak2ojjgkewyd2dgva
-  shell_command.proto: bafybeia5h7wdgysowe5e36srgl3ix22ymdfsiluxc7ljnyguechaw5xana
-  shell_command_pb2.py: bafybeihgry77roompmxjxhn2sokd3jhx44a6fzgsr44dgru4yroq6dmns4
-  tests/__init__.py: bafybeifmesqmldjbxngjnmfcvjphbxrl7ttrur3ihgq42j2l4jdonwrfk4
+  README.md: bafybeibbcv3xy5rbq2tvmhnn6f7lgffhuep7chjelhgrwzzjqosyypgkdi
+  __init__.py: bafybeigd57uvl34elu4yqexefarpwq5zbz25lwvmvblze2uldisyh56ffe
+  custom_types.py: bafybeifcqkkemiehmhrkr5ievvyll265nlwr2cvidjmjs7ev3ls3lderc4
+  dialogues.py: bafybeidehjnwrcu7rkjn4ozs255vev7hkevaccrbpdow3feyxzvhbmzli4
+  message.py: bafybeidjvjvaaeoeyahdvfaja2rw5x2ubea5e2uvdwt32jyrfyzuh6f2su
+  protocol_spec.yaml: bafybeid47ho3qp3zzfas65g4b3vnxuglg7lewizwycxvwaineezrizqcke
+  serialization.py: bafybeihft5r3i7jgtegucq2wkdqycvh6xedossqcu7uvs46kkkllp7uzeq
+  shell_command.proto: bafybeifiexeugxlgfakdorppsryh6g4juzxzprs6hngziwfjnjv6gc4hbi
+  shell_command_pb2.py: bafybeicclt6hky37yg3umkyiakylzylfgktqrhaqi7u46vh423sdnz42eu
+  tests/__init__.py: bafybeibo3lsvh4oyfy3l73qy3g2i4zto34vqw66iybnmzohag5domsx7am
   tests/dummy_data.yaml: bafybeih6fc3n2tryigv6qszptvbgyk6rfloeovllaqy4xwba6slwmcmgsu
-  tests/test_shell_command_dialogues.py: bafybeigy6hx7sg3jqpao565ihzqx43nx75upmn2zn27nje2d4vdpxhbsqe
-  tests/test_shell_command_messages.py: bafybeibkdj2bjsiolvaffhubc35jixynz3g2sid3cdcax5ohago3ohjzku
+  tests/test_shell_command_dialogues.py: bafybeifcey2gespzuj2robyqem46agxa6x5kvhnmh3z35nvacnh4rlbjz4
+  tests/test_shell_command_messages.py: bafybeidkrkogtl7xvmg3ha3n6u4m3v4p2v56bfzmxl44na4bhd4k2rallm
 fingerprint_ignore_patterns: []
 dependencies:
   protobuf: {}
+  pydantic: {}
