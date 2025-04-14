@@ -8,6 +8,17 @@
 import { exists, BaseDirectory } from '@tauri-apps/plugin-fs';
 // when using `"withGlobalTauri": true`, you may use
 // const { exists, BaseDirectory } = window.__TAURI__.fs;
+  import { 
+    Pause, 
+    Play, 
+    StopCircle, 
+    RefreshCw,
+    // log to show the logs
+    FileText,
+    Activity,
+    Settings,
+  } from 'lucide-svelte';
+
 
 import { open } from '@tauri-apps/plugin-dialog';
 
@@ -25,6 +36,7 @@ async function selectPrivateKey() {
   let selectedAgentId: string | null = null;
   let logs: string = "";
   let isLogsModalOpen = false;
+  let isStatsModalOpen = false;
 
   let agents: Agent[] = [];
   let isStopping: Record<string, boolean> = {};
@@ -32,12 +44,22 @@ async function selectPrivateKey() {
   let isFollowingLogs = true;
   let logInterval: number | null = 10;
 
+  let expandedGear = -1;
+
+  function toggleGear(agentId: number) {
+    expandedGear = expandedGear === agentId ? -1 : agentId;
+  }
 
 
   // config
   let isConfigModalOpen = false;
   let privateKeyPath = "";
   let environmentPath = "";
+
+  let version = "latest";
+
+  let isUpdating = false;
+  let isUpdatingVersion = false;
 
 
 
@@ -127,11 +149,11 @@ async function selectPrivateKey() {
     cleanupLogInterval();
   }
 
+  function closeStatsModal() {
+    isStatsModalOpen = false;
+  }
+
   // Add to onDestroy
-  onDestroy(() => {
-    clearInterval(interval);
-    cleanupLogInterval();
-  });
   // Fetch agents when the component mounts
 
 
@@ -171,16 +193,84 @@ async function selectPrivateKey() {
   });
 
 
+  import { DefaultService, OpenAPI } from '$lib/api';
+  import type { StateResponse } from '$lib/api';
+
+  OpenAPI.BASE = "http://localhost:8889";
+
+  console.log("OpenAPI.BASE:", OpenAPI.BASE);
+  export async function load() {
+    const state = await DefaultService.get(); // fully typed
+    return { state };
+  }
+  
+
+  load()
+    .then(({ state }) => {
+      console.log("State loaded:", state);
+      // do something with the state
+      console.log("State:", state);
+    })
+    .catch((error) => {
+      console.error("Error loading state:", error);
+    });
+
+  
+  let currentState: StateResponse | null = null;
+
+
+  async function openStatsModal(id: string) {
+    console.log("Opening stats modal for agent:", id);
+    selectedAgentId = id;
+    isStatsModalOpen = true;
+    currentState = await invoke("get_agent_state", { id });
+    console.log("Agent state:", currentState);
+    
+  }
+
+
+  let statsInterval: number | null = null;
+
+  $: {
+    if (isStatsModalOpen) {
+      // clear any existing interval before setting a new one
+      if (statsInterval) clearInterval(statsInterval);
+
+      statsInterval = setInterval(async () => {
+        currentState = await invoke("get_agent_state", { id: selectedAgentId });
+        console.log("Agent state:", currentState);
+      }, 500);
+    } else {
+      if (statsInterval) {
+        clearInterval(statsInterval);
+        statsInterval = null;
+      }
+    }
+  }
+
+
+  onDestroy(() => {
+    if (statsInterval) clearInterval(statsInterval);
+    clearInterval(interval);
+    cleanupLogInterval();
+  });
+
+
   onMount(fetchAgents);
 </script>
 
 <div class="terminal-shell">
 
+<title>Derolas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <main class="container">
 
-  <h1>Derolas</h1>
-  <p class="blink">Welcome to the future of decentralised Market Making</p>
-  <p>Click on the logos to learn more about the technologies used in this project.</p>
+<section class="intro text-center mt-4 mb-6 text-green-400">
+  <h1 class="text-3xl font-bold text-green-500 mb-2">Derolas</h1>
+</section>
+
+
 
   <div class="container">
   {#if isLogsModalOpen}
@@ -204,6 +294,56 @@ async function selectPrivateKey() {
           {logs}
         </pre>
 
+    </div>
+  {/if}
+
+  <div class="container">
+  {#if isStatsModalOpen}
+    <button class="modal-backdrop" aria-label="Close stats modal" on:click={() => isLogsModalOpen = false} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') isStatsModalOpen = false; }}></button>
+    <div class="log-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <h3>Stats for Agent</h3>
+          <code class="agent-id">{selectedAgentId}</code>
+        </div>
+
+        <!-- We are in the stats modal now -->
+        <div class="modal-controls">
+          <button class="btn-close" on:click={closeStatsModal}>×</button>
+        </div>
+
+        <!-- We have a grid of stats here for the agent. -->
+
+      </div>
+      <div class="stats-container">
+        <div class="status-card">
+          <div class="status-grid">
+            <div class="status-card">
+              <h4>Current Period</h4>
+              <code class="container-id">{currentState?.current_period}</code>
+            </div>
+            <div class="status-card">
+              <h4>Total Open Orders</h4>
+              <code >{currentState?.total_open_orders}</code>
+            </div>
+            <div class="status-card">
+              <h4>Ready</h4>
+              {#if currentState?.is_healthy}
+                <code class="status healthy">Everything Ok!</code>
+              {:else}
+                <code class="status unhealthy">Please Check Me!</code>
+              {/if}
+            </div>
+          </div>
+          <div class="status-card">
+            <h4>Current Agent State</h4>
+            <code class="container-id">{currentState?.current_state}</code>
+
+
+          </div>
+          </div>  
+
+      </div>  
     </div>
   {/if}
 
@@ -246,18 +386,22 @@ async function selectPrivateKey() {
   <section class="agent-status">
     <div class="status-bar">
       <h2 class="status-title">:: AGENTS</h2>
-      <button class="create" on:click={createNewAgent}>+ New Agent</button>
+      <!-- <button class="create" on:click={createNewAgent}>+ New Agent</button> -->
+       <!-- We check if the key and config are set before showing the button -->
+      {#if !privateKeyPath || !environmentPath}
+      {:else}
+        <button class="new-agent-btn" on:click={createNewAgent}>
+          {isUpdating ? 'Creating...' : '+ New Agent'}
+        </button>
+      {/if}
     </div>
-
     
 <div class="agent-table-wrapper">
   <table class="agent-table">
     <thead>
       <tr>
         <th>Status</th>
-        <th>Address</th>
-        <th>Last Seen</th>
-        <th>Container ID</th>
+        <th>Name</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -270,35 +414,40 @@ async function selectPrivateKey() {
           </td>
 
           <td><code>{agent.address}</code></td>
-          <td>{timeAgo(agent.lastSeenTimestamp)}</td>
-          <td>
-            {#if agent.status in [AgentStatus.Running, AgentStatus.Paused]}
-              <code>{agent.id}</code>
-            {:else}
-              —
-            {/if}
-          </td>
             <td>
               {#if isStopping[agent.id]}
                 <span class="stopping-label">Stopping...</span>
               {:else}
                 <div class="agent-actions">
                   {#if agent.status === AgentStatus.Running}
-                    <button class="btn tiny pause" on:click={() => pauseAgent(agent.id)}>Pause</button>
-                    <button class="btn tiny stop" on:click={() => stopAgent(agent.id)}>Stop</button>
+                  <!-- We use the pause button icon to save space -->
+                    <button class="btn tiny pause" on:click={() => pauseAgent(agent.id)}>
+                      <Pause size={16} />
+                    </button>
+                    <button class="btn tiny stop" on:click={() => stopAgent(agent.id)}>
+                      <StopCircle size={16} />
+                    </button>
                   {:else if agent.status === 'Paused'}
-                    <button class="btn tiny unpause" on:click={() => unpauseAgent(agent.id)}>Unpause</button>
+                    <button class="btn tiny unpause" on:click={() => unpauseAgent(agent.id)}>
+                      <Play size={16} />
+                    </button>
+                    <button class="btn tiny stop" on:click={() => stopAgent(agent.id)}>
+                      <StopCircle size={16} />
+                    </button>
                   {:else if agent.status === AgentStatus.Stopped}
                     <button class="btn tiny start" on:click={() => startAgent(agent.id)}>Start</button>
                   {/if}
-                
-                  {#if agent.status in [AgentStatus.Running, AgentStatus.Paused]}
-                    <button class="btn tiny restart" on:click={() => restartAgent(agent.id)}>Restart</button>
-                  {/if}
-                
-                  <button class="btn tiny logs" on:click={() => openLogsModal(agent.id)}>Logs</button>
+                    <button class="btn tiny logs" on:click={() => openLogsModal(agent.id)}>
+                      <FileText size={16} />
+                    </button>
+                    <button class="btn tiny stats" on:click={() => openStatsModal(agent.id)}>
+                      <Activity size={16} />
+                    </button>
+                    <!-- <button class="btn tiny restart" on:click={() => restartAgent(agent.id)}>
+                      <RefreshCw size={16} />
+                    </button> -->
                 </div>
-              {/if}
+                {/if}
             </td>
 
         </tr>
@@ -323,6 +472,7 @@ async function selectPrivateKey() {
     <a href="https://derive.xyz" target="_blank">
       <img src="/derive.png" class="logo" alt="Derive Logo" width="80" height="10"/>
     </a>
+    <!-- Versionining -->
   </footer>
 </main>
 </div>
@@ -1018,10 +1168,10 @@ button.logs:disabled:hover {
 }
 
 .agent-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  gap: 0.5rem;
+  justify-content: start;
 }
 
 .btn.tiny {
@@ -1072,6 +1222,27 @@ button.logs:disabled:hover {
 
 .agent-table tbody tr:nth-child(odd) {
   background-color: rgba(0, 255, 0, 0.03);
+}
+.gear-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.gear-dropdown {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: black;
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 0.5em #00ff00;
+  padding: 0.5rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.gear-dropdown button:hover {
+  background-color: rgba(0, 255, 0, 0.1);
 }
 
 </style>

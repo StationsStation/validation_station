@@ -1,20 +1,16 @@
+mod types;
+use rand;
+use rand::prelude::IndexedRandom;
 use bollard::container::{
     Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions,
 };
 use bollard::models::HostConfig;
-
+use bollard::models::CreateImageInfo;
+use bollard::image::CreateImageOptions;
 use bollard::Docker;
 use chrono::Utc;
 use futures::StreamExt;
 use tokio::runtime::Runtime;
-use rand::seq::SliceRandom;
-use rand;
-use bollard::models::CreateImageInfo;
-use bollard::image::CreateImageOptions;
-mod types;
-use crate::types::{Agent, AgentStatus, UserConfiguration};
-
-const IMAGE_NAME: &str = "8ball030/capitalisation_station:latest";
 
 use std::path::PathBuf;
 use std::fs;
@@ -26,6 +22,11 @@ use serde::Deserialize;
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine as _;
+
+use openapi::models::StateResponse;
+
+use crate::types::{Agent, AgentStatus, UserConfiguration};
+const IMAGE_NAME: &str = "8ball030/capitalisation_station:latest";
 const REGISTRY: &str = "https://index.docker.io/v1/"; // Adjust for private registries
 
 /// Connect to Docker based on the current platform.
@@ -157,11 +158,12 @@ fn parse_agent_status(raw: &str) -> AgentStatus {
     }
 }
 
+
 fn generate_agent_name() -> String {
     let adjectives = ["quick", "lazy", "sleepy", "happy", "sad", "angry", "funny", "serious", "curious", "brave", "smart", "silly", "shy", "bold", "calm", "wild", "friendly", "grumpy", "playful", "mischievous"];
     let names = ["cat", "dog", "fox", "bear", "lion", "tiger", "wolf", "eagle", "hawk", "shark", "whale", "dolphin", "octopus", "frog", "rabbit", "squirrel", "deer", "zebra", "giraffe", "elephant"];
     let words = ["agent", "bot", "unit", "module", "component", "device", "system", "entity", "object", "process", "task", "operation", "function", "service", "application", "program", "script", "daemon", "worker"];
-    let mut rng = rand::thread_rng(); // Create a random number generator
+    let mut rng = rand::rng(); // Create a random number generator
     let word = words.choose(&mut rng).unwrap_or(&"agent");
     let adjective = adjectives.choose(&mut rng).unwrap_or(&"quick");
     let name = names.choose(&mut rng).unwrap_or(&"cat");
@@ -350,6 +352,40 @@ fn start_container_command(config: UserConfiguration) -> String {
     }
 }
 
+// get the agent status
+#[tauri::command]
+async fn get_agent_state(id: String) -> StateResponse {
+    // we make a request to the port 8889 of the container
+    // We use the bollard client to temporarily forward the port
+    // and then we make a request to the container
+    let docker = get_docker_client();
+    let container_info = docker.inspect_container(&id, None).await.unwrap();
+    let ip = container_info.network_settings.unwrap().ip_address.unwrap();
+    let url = format!("http://{}:8889/state", ip);
+    let client = reqwest::Client::new();
+    
+    // we print
+    println!("🛠️ Making request to: {}", url);
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .expect("Failed to send request");
+    // println!("🛠️ Response: {:?}", response.ser
+    // we print the raw data
+    let raw_data = response.text().await.unwrap();
+    // println!("🛠️ Raw data: {:?}", raw_data);
+    // we parse the data
+    let parsed_data: StateResponse = serde_json::from_str(&raw_data).unwrap();
+    // we print the parsed data
+    // println!("🛠️ Parsed data: {:?}", parsed_data);
+    // and finally, we return the parsed data
+    parsed_data
+
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -361,6 +397,7 @@ pub fn run() {
             unpause_container_command,
             get_container_logs,
             list_agents,
+            get_agent_state,
             get_container_status_command
         ])
         .run(tauri::generate_context!())

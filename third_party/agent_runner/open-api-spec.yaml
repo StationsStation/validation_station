@@ -1,0 +1,244 @@
+openapi: 3.0.3
+info:
+  title: State API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      operationId: getState
+      summary: Get current portfolio and market state
+      responses:
+        '200':
+          description: Current state including portfolio, prices, and orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateResponse'
+components:
+  schemas:
+    StateResponse:
+      type: object
+      properties:
+        portfolio:
+          $ref: '#/components/schemas/LedgerExchangeAssetMap'
+        prices:
+          $ref: '#/components/schemas/LedgerExchangePriceMap'
+        new_orders:
+          type: array
+          items: {}
+        open_orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        failed_orders:
+          type: array
+          items: {}
+        submitted_orders:
+          type: array
+          items: {}
+        unaffordable_opportunity:
+          type: array
+          items: {}
+        total_open_orders:
+          type: integer
+        time_since_last_update:
+          type: string
+          format: date-time
+        current_state:
+          type: string
+        current_period:
+          type: integer
+        is_healthy:
+          type: boolean
+
+    LedgerExchangeAssetMap:
+      type: object
+      description: Mapping from ledger → exchange → list of assets
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+
+    LedgerExchangePriceMap:
+      type: object
+      description: Mapping from ledger → exchange → list of prices
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Price'
+    Asset:
+      type: object
+      properties:
+        asset_id:
+          type: string
+        free:
+          type: number
+        used:
+          type: number
+        total:
+          type: number
+        is_native:
+          type: boolean
+        contract_address:
+          type: string
+          nullable: true
+
+    Price:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds
+        datetime:
+          type: string
+          format: date-time
+        ask:
+          type: number
+        bid:
+          type: number
+        asset_a:
+          type: string
+          nullable: true
+        asset_b:
+          type: string
+          nullable: true
+        bid_volume:
+          type: number
+          nullable: true
+        ask_volume:
+          type: number
+          nullable: true
+        high:
+          type: number
+        low:
+          type: number
+        vwap:
+          type: number
+          nullable: true
+        open:
+          type: number
+          nullable: true
+        close:
+          type: number
+          nullable: true
+        last:
+          type: number
+          nullable: true
+        previous_close:
+          type: number
+          nullable: true
+        change:
+          type: number
+          nullable: true
+        percentage:
+          type: number
+          nullable: true
+        average:
+          type: number
+          nullable: true
+        base_volume:
+          type: number
+          nullable: true
+        quote_volume:
+          type: number
+          nullable: true
+        info:
+          type: object
+          nullable: true
+
+    Order:
+      type: object
+      properties:
+        symbol:
+          type: string
+        status:
+          type: integer
+        side:
+          type: integer
+        type:
+          type: integer
+        price:
+          type: number
+        exchange_id:
+          type: string
+        id:
+          type: string
+        client_order_id:
+          type: string
+          nullable: true
+        info:
+          type: object
+          nullable: true
+        ledger_id:
+          type: string
+        asset_a:
+          type: string
+          nullable: true
+        asset_b:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          nullable: true
+        datetime:
+          type: string
+          nullable: true
+        time_in_force:
+          type: string
+          nullable: true
+        post_only:
+          type: boolean
+          nullable: true
+        last_trade_timestamp:
+          type: string
+          nullable: true
+        stop_price:
+          type: number
+          nullable: true
+        trigger_price:
+          type: number
+          nullable: true
+        cost:
+          type: number
+          nullable: true
+        amount:
+          type: number
+        filled:
+          type: number
+          nullable: true
+        remaining:
+          type: number
+          nullable: true
+        fee:
+          type: number
+          nullable: true
+        average:
+          type: number
+          nullable: true
+        trades:
+          type: array
+          items: {}
+          nullable: true
+        fees:
+          type: array
+          items: {}
+          nullable: true
+        last_update_timestamp:
+          type: string
+          nullable: true
+        reduce_only:
+          type: boolean
+          nullable: true
+        take_profit_price:
+          type: number
+          nullable: true
+        stop_loss_price:
+          type: number
+          nullable: true
