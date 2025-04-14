@@ -62,6 +62,7 @@ packages/eightballer/skills/prometheus.DS_Store
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+third_party/template_working_tauri_app/
 .*
 !.gitignore
 !.github

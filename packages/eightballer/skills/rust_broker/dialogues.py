@@ -70,25 +70,4 @@ class PrometheusDialogues(Model, BasePrometheusDialogues):
             role_from_first_message=role_from_first_message,
         )
 
-# ShellCommandDialogues = BaseShellCommandDialogues
-
-class ShellCommandDialogues(Model, BaseShellCommandDialogues):
-    """The dialogues class keeps track of all shell command dialogues."""
-    
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize dialogues."""
-        Model.__init__(self, **kwargs)
-    
-        def role_from_first_message(  # pylint: disable=unused-argument
-            message: Message, receiver_address: Address
-        ) -> BaseDialogue.Role:
-            """Infer the role of the agent from an incoming/outgoing first message."""
-            del receiver_address, message
-            return ShellCommandDialogue.Role.AGENT
-    
-        BaseShellCommandDialogues.__init__(
-            self,
-            self_address=str(self.skill_id),
-            role_from_first_message=role_from_first_message,
-        )   
-# ------------------------------------------------------------------------------
+ShellCommandDialogues = BaseShellCommandDialogues

@@ -6,13 +6,15 @@ aea_version: '>=1.0.0, <2.0.0'
 license: apache-2.0
 fingerprint: {}
 fingerprint_ignore_patterns: []
-agent: eightballer/validation_station_broker:0.1.0:bafybeicbqncwggjj4p2o5562lrd7udhrioedudyp7lbdtbbervazl3qjye
-number_of_agents: 1
+agent: eightballer/validation_station_broker:0.1.0:bafybeidkzr6cdfxkkeuaj6exhwdpmxyuuhuxclnozrewqi4arv77exrc44
+number_of_agents: 4
 deployment:
   agent:
     ports:
-      0:
-        8080:8080
+      0: 8080:8080
+      1: 8081:8080
+      2: 8082:8080
+      3: 8083:8080
     volumes: {}
 ---
 public_id: eightballer/http_server:0.1.0:bafybeicp3ubkonolxjgnwgqmaz624qduwzzz74fbjizu77lyvnpo77uv7u

@@ -13,10 +13,14 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@openapitools/openapi-generator-cli": "^2.18.4",
     "@tauri-apps/api": "^2.4.1",
     "@tauri-apps/plugin-dialog": "^2.2.1",
     "@tauri-apps/plugin-fs": "^2.2.1",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-opener": "^2",
+    "lucide-svelte": "^0.488.0",
+    "openapi-typescript": "^7.6.1",
+    "openapi-typescript-codegen": "^0.29.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.6",

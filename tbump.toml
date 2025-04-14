@@ -18,3 +18,5 @@ tag_template = "v{new_version}"
 
 [[file]]
 src = "pyproject.toml"
+[[file]]
+src = "third_party/agent_runner/src-tauri/Cargo.toml"

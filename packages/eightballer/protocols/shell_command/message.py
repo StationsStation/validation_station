@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
-#   Copyright 2024 eightballer
+#   Copyright 2025 eightballer
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,17 +21,20 @@
 
 # pylint: disable=too-many-statements,too-many-locals,no-member,too-few-public-methods,too-many-branches,not-an-iterable,unidiomatic-typecheck,unsubscriptable-object
 import logging
-from typing import Any, Set, Dict, Tuple, Optional, cast
+from typing import Any, Dict, Optional, Set, Tuple, cast
 
+from aea.configurations.base import PublicId
 from aea.exceptions import AEAEnforceError, enforce
 from aea.protocols.base import Message  # type: ignore
-from aea.configurations.base import PublicId
+
 from packages.eightballer.protocols.shell_command.custom_types import (
     ErrorCode as CustomErrorCode,
 )
 
 
-_default_logger = logging.getLogger("aea.packages.eightballer.protocols.shell_command.message")
+_default_logger = logging.getLogger(
+    "aea.packages.eightballer.protocols.shell_command.message"
+)
 
 DEFAULT_BODY_SIZE = 4
 
@@ -63,6 +66,7 @@ class ShellCommandMessage(Message):
             "args",
             "command",
             "dialogue_reference",
+            "env_vars",
             "error",
             "exit_code",
             "message",
@@ -142,6 +146,11 @@ class ShellCommandMessage(Message):
         return cast(str, self.get("command"))
 
     @property
+    def env_vars(self) -> Optional[bytes]:
+        """Get the 'env_vars' content from the message."""
+        return cast(Optional[bytes], self.get("env_vars"))
+
+    @property
     def error(self) -> CustomErrorCode:
         """Get the 'error' content from the message."""
         enforce(self.is_set("error"), "'error' content is not set.")
@@ -204,11 +213,15 @@ class ShellCommandMessage(Message):
             )
             enforce(
                 type(self.message_id) is int,
-                "Invalid type for 'message_id'. Expected 'int'. Found '{}'.".format(type(self.message_id)),
+                "Invalid type for 'message_id'. Expected 'int'. Found '{}'.".format(
+                    type(self.message_id)
+                ),
             )
             enforce(
                 type(self.target) is int,
-                "Invalid type for 'target'. Expected 'int'. Found '{}'.".format(type(self.target)),
+                "Invalid type for 'target'. Expected 'int'. Found '{}'.".format(
+                    type(self.target)
+                ),
             )
 
             # Light Protocol Rule 2
@@ -227,11 +240,15 @@ class ShellCommandMessage(Message):
                 expected_nb_of_contents = 3
                 enforce(
                     isinstance(self.command, str),
-                    "Invalid type for content 'command'. Expected 'str'. Found '{}'.".format(type(self.command)),
+                    "Invalid type for content 'command'. Expected 'str'. Found '{}'.".format(
+                        type(self.command)
+                    ),
                 )
                 enforce(
                     isinstance(self.args, tuple),
-                    "Invalid type for content 'args'. Expected 'tuple'. Found '{}'.".format(type(self.args)),
+                    "Invalid type for content 'args'. Expected 'tuple'. Found '{}'.".format(
+                        type(self.args)
+                    ),
                 )
                 enforce(
                     all(isinstance(element, str) for element in self.args),
@@ -239,7 +256,9 @@ class ShellCommandMessage(Message):
                 )
                 enforce(
                     isinstance(self.options, dict),
-                    "Invalid type for content 'options'. Expected 'dict'. Found '{}'.".format(type(self.options)),
+                    "Invalid type for content 'options'. Expected 'dict'. Found '{}'.".format(
+                        type(self.options)
+                    ),
                 )
                 for key_of_options, value_of_options in self.options.items():
                     enforce(
@@ -259,34 +278,55 @@ class ShellCommandMessage(Message):
                     timeout = cast(int, self.timeout)
                     enforce(
                         type(timeout) is int,
-                        "Invalid type for content 'timeout'. Expected 'int'. Found '{}'.".format(type(timeout)),
+                        "Invalid type for content 'timeout'. Expected 'int'. Found '{}'.".format(
+                            type(timeout)
+                        ),
+                    )
+                if self.is_set("env_vars"):
+                    expected_nb_of_contents += 1
+                    env_vars = cast(bytes, self.env_vars)
+                    enforce(
+                        isinstance(env_vars, bytes),
+                        "Invalid type for content 'env_vars'. Expected 'bytes'. Found '{}'.".format(
+                            type(env_vars)
+                        ),
                     )
             elif self.performative == ShellCommandMessage.Performative.COMMAND_RESULT:
                 expected_nb_of_contents = 3
                 enforce(
                     isinstance(self.stdout, str),
-                    "Invalid type for content 'stdout'. Expected 'str'. Found '{}'.".format(type(self.stdout)),
+                    "Invalid type for content 'stdout'. Expected 'str'. Found '{}'.".format(
+                        type(self.stdout)
+                    ),
                 )
                 enforce(
                     isinstance(self.stderr, str),
-                    "Invalid type for content 'stderr'. Expected 'str'. Found '{}'.".format(type(self.stderr)),
+                    "Invalid type for content 'stderr'. Expected 'str'. Found '{}'.".format(
+                        type(self.stderr)
+                    ),
                 )
                 enforce(
                     type(self.exit_code) is int,
-                    "Invalid type for content 'exit_code'. Expected 'int'. Found '{}'.".format(type(self.exit_code)),
+                    "Invalid type for content 'exit_code'. Expected 'int'. Found '{}'.".format(
+                        type(self.exit_code)
+                    ),
                 )
             elif self.performative == ShellCommandMessage.Performative.EXECUTION_ERROR:
                 expected_nb_of_contents = 1
                 enforce(
                     isinstance(self.error, CustomErrorCode),
-                    "Invalid type for content 'error'. Expected 'ErrorCode'. Found '{}'.".format(type(self.error)),
+                    "Invalid type for content 'error'. Expected 'ErrorCode'. Found '{}'.".format(
+                        type(self.error)
+                    ),
                 )
                 if self.is_set("message"):
                     expected_nb_of_contents += 1
                     message = cast(str, self.message)
                     enforce(
                         isinstance(message, str),
-                        "Invalid type for content 'message'. Expected 'str'. Found '{}'.".format(type(message)),
+                        "Invalid type for content 'message'. Expected 'str'. Found '{}'.".format(
+                            type(message)
+                        ),
                     )
 
             # Check correct content count
@@ -301,7 +341,9 @@ class ShellCommandMessage(Message):
             if self.message_id == 1:
                 enforce(
                     self.target == 0,
-                    "Invalid 'target'. Expected 0 (because 'message_id' is 1). Found {}.".format(self.target),
+                    "Invalid 'target'. Expected 0 (because 'message_id' is 1). Found {}.".format(
+                        self.target
+                    ),
                 )
         except (AEAEnforceError, ValueError, KeyError) as e:
             _default_logger.error(str(e))
