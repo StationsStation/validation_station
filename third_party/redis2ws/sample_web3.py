@@ -5,7 +5,7 @@ Perform a simple test of the redis2ws module by running rpc_server.py and then r
 import time
 import web3
 
-url = "http://localhost:8881/public-rpc"
+url = "http://159.223.245.14:80/public-rpc"
 
 import rich
 import rich_click as click
