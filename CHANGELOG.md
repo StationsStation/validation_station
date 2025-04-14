@@ -1,5 +1,7 @@
 # Changelog
 
+## [v0.1.3](https://github.com/StationsStation/validation_station/tree/v0.1.3) (2025-04-14)
+
 ## [v0.1.1](https://github.com/StationsStation/validation_station/tree/v0.1.1) (2025-04-14)
 
 **Merged pull requests:**
