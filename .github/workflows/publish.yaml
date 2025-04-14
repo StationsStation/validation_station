@@ -34,7 +34,7 @@ jobs:
       run:
         working-directory: ./third_party/agent_runner
     env:
-      RELEASE_VERSION: 0.1.0
+      RELEASE_VERSION: 0.1.4
     steps:
       - uses: actions/checkout@v4
       - name: install dependencies (ubuntu only)
