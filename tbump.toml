@@ -22,3 +22,5 @@ src = "pyproject.toml"
 src = "third_party/agent_runner/src-tauri/Cargo.toml"
 [[file]]
 src = ".github/workflows/publish.yaml"
+[[file]]
+src = "third_party/agent_runner/src-tauri/tauri.conf.json"
