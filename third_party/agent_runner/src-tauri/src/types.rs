@@ -1,5 +1,6 @@
 // src/shared.rs
 
+use serde::Serialize;
 use typeshare::typeshare;
 
 
@@ -23,6 +24,7 @@ pub enum AgentStatus {
 #[serde(rename_all = "camelCase")]
 pub struct Agent{
     pub id: String,
+    pub name: String,
     pub status: AgentStatus,
     pub address: String,
     pub last_seen_timestamp: String,
@@ -35,4 +37,15 @@ pub struct Agent{
 pub struct UserConfiguration {
     pub private_key_path: String,
     pub environment_path: String,
+}
+
+
+#[typeshare]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentTemplate {
+    pub name: String,
+    pub description: String,
+    pub version: String,
+    pub author: String,
 }

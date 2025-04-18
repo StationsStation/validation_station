@@ -7,12 +7,12 @@ use bollard::Docker;
 use chrono::Utc;
 use futures::StreamExt;
 use tokio::runtime::Runtime;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rand;
 use bollard::models::CreateImageInfo;
 use bollard::image::CreateImageOptions;
 mod types;
-use crate::types::{Agent, AgentStatus, UserConfiguration};
+use crate::types::{Agent, AgentStatus, UserConfiguration, AgentTemplate};
 
 const IMAGE_NAME: &str = "8ball030/capitalisation_station:latest";
 
@@ -161,7 +161,8 @@ fn generate_agent_name() -> String {
     let adjectives = ["quick", "lazy", "sleepy", "happy", "sad", "angry", "funny", "serious", "curious", "brave", "smart", "silly", "shy", "bold", "calm", "wild", "friendly", "grumpy", "playful", "mischievous"];
     let names = ["cat", "dog", "fox", "bear", "lion", "tiger", "wolf", "eagle", "hawk", "shark", "whale", "dolphin", "octopus", "frog", "rabbit", "squirrel", "deer", "zebra", "giraffe", "elephant"];
     let words = ["agent", "bot", "unit", "module", "component", "device", "system", "entity", "object", "process", "task", "operation", "function", "service", "application", "program", "script", "daemon", "worker"];
-    let mut rng = rand::thread_rng(); // Create a random number generator
+    let mut rng = rand::rng(); // Create a random number generator
+    // let word = words.choose(&mut rng).unwrap_or(&"agent");
     let word = words.choose(&mut rng).unwrap_or(&"agent");
     let adjective = adjectives.choose(&mut rng).unwrap_or(&"quick");
     let name = names.choose(&mut rng).unwrap_or(&"cat");
@@ -196,6 +197,12 @@ async fn get_container_status() -> Vec<Agent> {
                     status: parse_agent_status(&raw_status),
                     last_seen_timestamp: Utc::now().to_rfc3339(),
                     address: container
+                        .network_settings
+                        .as_ref()
+                        .and_then(|ns| ns.networks.as_ref()?.get("bridge"))
+                        .and_then(|n| n.ip_address.clone())
+                        .unwrap_or_default(),
+                    name: container
                         .names
                         .unwrap_or_default()
                         .get(0)
@@ -350,12 +357,30 @@ fn start_container_command(config: UserConfiguration) -> String {
     }
 }
 
+fn get_templates() -> Vec<AgentTemplate> {
+    vec![AgentTemplate {
+        name: "simple_arbitrage_agent".to_string(),
+        description: "An example agent that arbitrages between cow swap and derive exchanges".to_string(),
+        version: "1.0.0".to_string(),
+        author: "8ball030".to_string(),
+    }]
+}
+
+#[tauri::command]
+fn fetch_available_templates() -> Vec<AgentTemplate> {
+    println!("🛠️ Fetching available templates...");
+    let templates = get_templates();
+    println!("✅ Found {} templates", templates.len());
+    templates
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             start_container_command,
+            fetch_available_templates,
             stop_container_command,
             pause_container_command,
             unpause_container_command,

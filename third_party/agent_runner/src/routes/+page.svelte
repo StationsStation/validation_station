@@ -2,14 +2,19 @@
 <script lang="ts">
 
   import { invoke } from '@tauri-apps/api/core';
-  import { AgentStatus, type Agent } from '../types/src_tauri';
+  import { AgentStatus, type Agent, type AgentTemplate } from '../types/src_tauri';
   import { onDestroy, onMount } from 'svelte';
   import { afterUpdate } from 'svelte';
+import { open } from '@tauri-apps/plugin-dialog';
 import { exists, BaseDirectory } from '@tauri-apps/plugin-fs';
 // when using `"withGlobalTauri": true`, you may use
 // const { exists, BaseDirectory } = window.__TAURI__.fs;
 
-import { open } from '@tauri-apps/plugin-dialog';
+let isStrategiesModalOpen = false;
+let strategyName = '';
+let strategyDescription = '';
+let strategies: AgentTemplate[] = [];
+
 
 async function selectPrivateKey() {
   const selected = await open({
@@ -33,6 +38,11 @@ async function selectPrivateKey() {
   let logInterval: number | null = 10;
 
 
+  // get strategies
+  async function getAvailableTemplates() {
+    const templates: [AgentTemplate] = await invoke("get_available_templates");
+    strategies = templates;
+  }
 
   // config
   let isConfigModalOpen = false;
@@ -170,8 +180,11 @@ async function selectPrivateKey() {
     clearInterval(interval);
   });
 
+  onMount(() => {
+    fetchAgents();
+    getAvailableTemplates();
+  });
 
-  onMount(fetchAgents);
 </script>
 
 <div class="terminal-shell">
@@ -179,9 +192,6 @@ async function selectPrivateKey() {
 <main class="container">
 
   <h1>Derolas</h1>
-  <p class="blink">Welcome to the future of decentralised Market Making</p>
-  <p>Click on the logos to learn more about the technologies used in this project.</p>
-
   <div class="container">
   {#if isLogsModalOpen}
     <button class="modal-backdrop" aria-label="Close logs modal" on:click={() => isLogsModalOpen = false} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') isLogsModalOpen = false; }}></button>
@@ -212,8 +222,9 @@ async function selectPrivateKey() {
   <section class="agent-status">
     <div class="status-bar">
       <h2 class="status-title">:: CONFIG</h2>
-      <button class="new-agent-btn" on:click={() => isConfigModalOpen = !isConfigModalOpen}>
-        {isConfigModalOpen ? '− Close Config' : '+ Config'}
+      <button class="new-agent-btn" on:click={() => isConfigModalOpen = !isConfigModalOpen}
+        class:active={isConfigModalOpen}>
+        {isConfigModalOpen ? '✖ Close Config' : '⚙️ Open Config'}
       </button>
     </div>
 
@@ -237,6 +248,28 @@ async function selectPrivateKey() {
             <code id="environment-path">{environmentPath || '[Not selected]'}</code>
             <button on:click={selectEnvironmentFile}>Select Environment</button>
           </div>
+        </div>
+      {/if}
+    </div>
+  </section>
+
+  <!-- STRATEGIES -->
+  <section>
+    <!-- We list the strategies -->
+    <div class="status-bar">
+      <h2 class="status-title">:: STRATEGIES</h2>
+      <button class="new-agent-btn" on:click={() => isStrategiesModalOpen = !isStrategiesModalOpen}
+        class:active={isStrategiesModalOpen}>
+        {isStrategiesModalOpen ? '✖ Close Strategies' : '📜 Open Strategies'}
+      </button>
+      {#if isStrategiesModalOpen}
+        <div class="status-card">
+          <h3>Available Strategies</h3>
+          <ul>
+            {#each strategies as strategy}
+              <li>{strategy.name} - {strategy.description}</li>
+            {/each}
+          </ul>
         </div>
       {/if}
     </div>
