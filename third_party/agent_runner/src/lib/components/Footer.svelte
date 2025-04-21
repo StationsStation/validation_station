@@ -1,12 +1,4 @@
 <script lang="ts">
-  import * as Dialog from "$lib/components/ui/dialog";
-  import * as Card from "$lib/components/ui/card";
-  import { Separator } from "$lib/components/ui/separator";
-  import * as Button from "$lib/components/ui/button";
-  import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import { sendNotification } from '@tauri-apps/plugin-notification';
-  import { open } from '@tauri-apps/plugin-shell';
-
 </script>
 
 <footer class="grid grid-cols-3 gap-4 items-center justify-items-center py-4 border-t border-green-500 bg-black z-10">

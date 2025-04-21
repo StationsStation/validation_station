@@ -137,7 +137,7 @@
             variant="default"
             class="w-full"
             disabled={!configName || !keyName || !deploymentName}
-            on:click={() => {
+            onclick={() => {
               // deploy logic
               console.log("Deploying agent with config: ", configName);
               console.log("Using key: ", keyName);
