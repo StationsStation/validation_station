@@ -1,12 +1,13 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
+import {svelteTesting} from '@testing-library/svelte/vite'
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [sveltekit()],
+  plugins: [sveltekit(), svelteTesting()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -30,6 +31,12 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
     // Adding a custom middleware example
+  },
+
+  test: {
+    environment: 'jsdom',       // <-- This is the key part
+    globals: true,
+    setupFiles: './vitest.setup.ts',
   },
 
 }));
