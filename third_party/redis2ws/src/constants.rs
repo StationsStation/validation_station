@@ -18,4 +18,4 @@ pub const PENALTY_MISMATCHED_DATA: u64 = 1;  // Penalty for mismatched data
 
 // pub const REWARDS_HEARTBEAT: u64 = 1;         // Reward for first response
 pub const REWARDS_CONSENSUS: u64 = 10;         // Reward for consensus
-pub const REWARDS_OPTIMISTIC: u64 = 10;        // Reward for optimistic response
+pub const REWARDS_OPTIMISTIC: u64 = 100;        // Reward for optimistic response
