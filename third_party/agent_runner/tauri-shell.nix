@@ -10,9 +10,10 @@ pkgs.mkShell {
     fuse
     appimage-run
     appimagekit
-      jdk
-
+    jdk
     # rust tools
+    rustup
+    cargo
     typeshare
   ];
   nativeBuildInputs =
@@ -47,6 +48,7 @@ pkgs.mkShell {
   
   # Add this shellHook to ensure XDG-related environment variables are set
   shellHook = ''
+    rustup default stable
     export PATH=/home/$(whoami)/.cargo/bin:$PATH
     export XDG_DATA_DIRS=${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:$XDG_DATA_DIRS
   '';
