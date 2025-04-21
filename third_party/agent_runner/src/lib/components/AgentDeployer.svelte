@@ -12,33 +12,30 @@
   import { createDeployment } from "../../stores/deployments";
   import { toast } from "svelte-sonner";
 
-  let configName: string = "";
-  let configs: Record<string, StrategyVars> = $configStore;
-
-  let keyName: string = "";
-  let keys: Record<string, string> = $keyStore;
-
-
-  let deploymentName: string = "";
 
 
   loadConfigsFromStore();
   loadKeysFromStore();
-  console.log("Configs: ", configs);
-  console.log("Keys: ", keys);
+  let configName: string = "";
+
+  let keyName: string = "";
+
+
+  let deploymentName: string = "";
 
   async function handleSave() {
     console.log("Saving config...");
 
-
     // we first get the path of the key
+    let keys = await loadKeysFromStore();
     let keyPath = keys[keyName];
     if (!keyPath) {
       toast.error("Key not found");
       return;
     }
     // we then get the path of the config data
-    let configData = configs[configName]
+    let configs = await loadConfigsFromStore();
+    let configData = configs[configName];
     if (!configData) {
       toast.error("Config not found");
       return;
@@ -88,7 +85,7 @@
               </Select.Trigger>
               <Select.Content>
                 <Select.Group>
-                  {#each Object.keys(configs) as key}
+                  {#each Object.keys($configStore) as key}
                     <Select.Item value={key}>{key}</Select.Item>
                   {/each}
                 </Select.Group>
@@ -106,7 +103,7 @@
               </Select.Trigger>
               <Select.Content>
                 <Select.Group>
-                  {#each Object.keys(keys) as key}
+                  {#each Object.keys($keyStore) as key}
                     <Select.Item value={key}>{key}</Select.Item>
                   {/each}
                 </Select.Group>
