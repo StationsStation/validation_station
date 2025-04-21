@@ -3,7 +3,6 @@
   import * as Card from "$lib/components/ui/card";
 
   import * as Input from "$lib/components/ui/input";
-  import { Separator } from "$lib/components/ui/separator";
   import * as Button from "$lib/components/ui/button";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import { open } from '@tauri-apps/plugin-dialog';
@@ -12,7 +11,7 @@
     NewKey: 'new_key'
   }
   import { toast } from "svelte-sonner";
-  import { Delete, Play, Save,} from "lucide-svelte";
+  import { Delete, Save,} from "lucide-svelte";
   import { generateKeyFile, keyStore, loadKeysFromStore, removeKeyFromStore, saveKeysToStore,} from "../../stores/keys";
   let mode: string = KeyMode.NewKey;
   let file: string = "";
