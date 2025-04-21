@@ -1,10 +1,10 @@
 // src/shared.rs
 
 use typeshare::typeshare;
+use std::collections::HashMap;
 
 
 // We define an enum for the status of the agent
-
 
 #[typeshare]
 #[derive(serde::Serialize)]
@@ -17,11 +17,10 @@ pub enum AgentStatus {
     Exited,
 }
 
-
 #[typeshare]
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Agent{
+pub struct Agent {
     pub id: String,
     pub status: AgentStatus,
     pub address: String,
@@ -34,5 +33,5 @@ pub struct Agent{
 #[serde(rename_all = "camelCase")]
 pub struct UserConfiguration {
     pub private_key_path: String,
-    pub environment_path: String,
+    pub environment_vars: HashMap<String, String>,
 }
