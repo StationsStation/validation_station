@@ -1,28 +1,17 @@
 <script lang="ts">
+  export let agentId: string = "";
 
-// We allow this component to take some props
-    export let agentId: string = "";
-
-  import * as Table from "$lib/components/ui/table";
   import * as Button from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Card from "$lib/components/ui/card";
-  import { onMount } from "svelte";
-  import { AgentStatus} from '../../types/src_tauri';
-  import type { Agent } from '../../types/src_tauri';
+  import type { StateResponse } from '$lib/api';
   import { invoke } from '@tauri-apps/api/core';
   import {
-    Pause,
-    Play,
-    StopCircle,
-    FileText,
     Activity,
-    Plus,
-    RefreshCw,
-    Download,
   } from 'lucide-svelte';
-  let currentState: any = null;
+
   let isStatsModalOpen: boolean = false;
+  let currentState: StateResponse | null = null;
 
   async function openStatsModal(id: string) {
     console.log("Opening stats modal for agent:", id);

@@ -16,16 +16,23 @@
     Plus,
     RefreshCw,
     Download,
+    Delete,
+    FileX,
+
+    OctagonX,
+
+    CircleX
+
+
   } from 'lucide-svelte';
-    import AgentDeployer from "./AgentDeployer.svelte";
-    import { toast } from "svelte-sonner";
-    import { save } from "@tauri-apps/plugin-dialog";
-    import { Root } from "./ui/input";
-    import { Content } from "./ui/select";
-    import { on } from "svelte/events";
-    import StatsModal from "./StatsModal.svelte";
+  import AgentDeployer from "./AgentDeployer.svelte";
+  import { toast } from "svelte-sonner";
+  import StatsModal from "./StatsModal.svelte";
+    import LogsModal from "./LogsModal.svelte";
+
   let agentsList : Agent[] = [];
   let isStopping: Record<string, boolean> = {};
+
 
   async function fetchAgents() {
     agentsList = await invoke<Agent[]>("list_agents");
@@ -41,9 +48,15 @@
   }
 
   async function pauseAgent(id: string) {
-  await invoke("pause_container_command", { id });
-  await fetchAgents();
-}
+    await invoke("pause_container_command", { id });
+    await fetchAgents();
+  }
+
+
+  async function deleteAgent(id: string) {
+    await invoke("delete_container_command", { id });
+    await fetchAgents();
+  }
 
   async function unpauseAgent(id: string) {
     await invoke("unpause_container_command", { id });
@@ -60,60 +73,6 @@
   });
 
   setInterval(fetchAgents, 500);
-
-
-  let selectedAgentId: string | null = null;
-  let isLogsModalOpen = false;
-  let isFollowingLogs = true;
-  let logContainer: HTMLPreElement;
-  let logs: string = "";
-  let isStatsModalOpen = false;
-
-
-  async function openLogsModal(agentId: string) {
-    console.log("Opening logs modal for agent:", agentId);
-    selectedAgentId = agentId;
-    isLogsModalOpen = true;
-    await fetchLogs(agentId); // no param
-  }
-
-  async function fetchLogs(id: string) {
-    logs = await invoke("get_container_logs", { id: id});
-    // If following is enabled, scroll to bottom after fetching new logs
-    if (isFollowingLogs && logContainer) {
-      // Use setTimeout to ensure this happens after the DOM updates
-      setTimeout(() => {
-        logContainer.scrollTop = logContainer.scrollHeight;
-      }, 100);
-      // we recursively call this function every 3 seconds
-      setTimeout(() => {
-        fetchLogs(id);
-      }, 1000);
-    }
-  }
-
-
-  async function saveLogs(id: string) {
-    const logs = await invoke("get_container_logs", { id: id});
-    const filePath = await save({
-      defaultPath: `logs_${id}.txt`,
-      filters: [{ name: 'Text Files', extensions: ['txt'] }],
-    });
-    if (filePath) {
-      // Save the logs to the selected file
-      await invoke("save_logs_to_file", { path: filePath, logs });
-      toast(`Logs saved to ${filePath}`);
-    }
-  }
-  async function closeLogsModal() {
-    console.log("Closing logs modal");
-    isLogsModalOpen = false;
-  }
-  async function closeStatsModal() {
-    console.log("Closing stats modal");
-    isStatsModalOpen = false;
-  }
-
 
 </script>
 
@@ -162,76 +121,27 @@
                 <Button.Root variant="destructive" size="icon" on:click={() => stopAgent(item.id)}>
                     <StopCircle size={16} />
                 </Button.Root>
-            {:else if [AgentStatus.Stopped].includes(item.status)}
-                <Button.Root variant="outline" size="icon" on:click={() => startAgent(item.id)}>
-                <Play size={16} />
+            {:else if [AgentStatus.Exited].includes(item.status)}
+                <Button.Root variant="destructive" size="icon" on:click={() => stopAgent(item.id)}>
+                    <FileX size={16} />
                 </Button.Root>
             {:else if isStopping[item.id]}
                 <Button.Root variant="outline" size="icon" disabled>
                 <StopCircle size={16} />
                 </Button.Root>
             {/if}
-            <Dialog.Root >
-              <Dialog.Trigger onclick={() => openLogsModal(item.id)} onclose={() => closeLogsModal()}>
-                <Button.Root variant="outline" size="icon">
-                  <FileText size={16} />
-                </Button.Root>
-              </Dialog.Trigger>
-              <Dialog.Content class="w-full max-w-screen-2xl">
-                <Dialog.Title>Logs for {item.address}</Dialog.Title>
-                <Dialog.Description>
-                  <pre bind:this={logContainer} class="overflow-auto max-h-96"> </pre>
-                  <!-- We add in a follow logs button -->
-
-                </Dialog.Description>
-                <!-- We now render the logs card -->
-                <Card.Root>
-                  <Card.Content>
-                    <div class="flex items-center gap-2">
-                      <h5 class="text-sm font-semibold">Logs</h5>
-                    </div>
-                    <!-- Now a nice container for the logs -->
-                    <div class="overflow-auto max-h-96">
-                      <pre bind:this={logContainer} class="overflow-auto max-h-96">{logs}</pre>
-                    </div>
-                  </Card.Content>
-                    <div class="flex justify-center gap-4 mt-6">
-                    <!-- Follow/Unfollow Logs Button -->
-                    <Button.Root
-                      variant="outline"
-                      on:click={() => {
-                        isFollowingLogs = !isFollowingLogs;
-                        if (isFollowingLogs) {
-                          fetchLogs(item.id); // Start fetching
-                        }
-                      }}
-                      class="flex items-center gap-2 px-4 py-2"
-                    >
-                      <FileText
-                        size={16}
-                        class={isFollowingLogs ? "text-green-500" : "text-gray-500"}
-                      />
-                      {isFollowingLogs ? "Unfollow Logs" : "Follow Logs"}
-                    </Button.Root>
-                    <!-- Save Logs Button -->
-                    <Button.Root
-                      variant="outline"
-                      on:click={() => {
-                        saveLogs(item.id);
-                      }}
-                      class="flex items-center gap-2 px-4 py-2"
-                    >
-                      <Download size={16} />
-                      Save Logs
-                    </Button.Root>
-                  </div>
-                </Card.Root>
-              </Dialog.Content>
-            </Dialog.Root>
+            <!-- Logs Modal -->
+             <LogsModal
+              agentId={item.id}
+              ></LogsModal>
             <!-- Stats Modal -->
              <StatsModal
               agentId={item.id}
               ></StatsModal>
+            <!-- Delete Agent -->
+            <Button.Root variant="destructive" size="icon" on:click={() => deleteAgent(item.id)}>
+              <CircleX size={16} />
+            </Button.Root>
         </Table.Cell>
       </Table.Row>
     {/each}

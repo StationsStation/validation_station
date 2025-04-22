@@ -5,6 +5,7 @@ use bollard::container::{
 
 use bollard::container::RemoveContainerOptions;
 
+use bollard::container::WaitContainerOptions;
 use bollard::models::ContainerSummary;
 use tauri::path::BaseDirectory::AppData;
 use bollard::image::CreateImageOptions;
@@ -327,34 +328,95 @@ async fn unpause_container_command(id: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to unpause container {}: {}", id, e))
 }
 
+
+
+#[tauri::command]
+async fn delete_container_command(id: &str) -> Result<(), String> {
+    let docker = get_docker_client();
+
+    if !container_exists(id).await {
+        return Err("Container not found.".into());
+    }
+
+    docker
+        .remove_container(
+            id,
+            Some(RemoveContainerOptions {
+                force: true,
+                ..Default::default()
+            }),
+        )
+        .await
+        .map(|_| ())
+        .map_err(|e| format!("Failed to remove container {}: {}", id, e))
+}
+
+
+use futures::TryStreamExt;
+
 #[tauri::command]
 async fn get_container_logs(id: String) -> Result<String, String> {
     let docker = get_docker_client();
 
-    let mut logs = docker.logs(
-        &id,
-        Some(LogsOptions::<String> {
-            stdout: true,
-            stderr: true,
-            follow: false,
-            ..Default::default()
-        }),
-    );
+    let container_status = docker
+        .inspect_container(&id, None)
+        .await
+        .map_err(|e| format!("Error inspecting container: {}", e))?;
+    if container_status.state.unwrap().running.unwrap() {
 
-    let mut output = String::new();
+        let mut logs = docker.logs(
+            &id,
+            Some(LogsOptions::<String> {
+                stdout: true,
+                stderr: true,
+                follow: false,
+                ..Default::default()
+            }),
+        );
 
-    while let Some(log_result) = logs.next().await {
-        match log_result {
-            Ok(bollard::container::LogOutput::StdOut { message })
-            | Ok(bollard::container::LogOutput::StdErr { message }) => {
-                output.push_str(&String::from_utf8_lossy(&message));
+        let mut output = String::new();
+
+
+
+        while let Some(log_result) = logs.next().await {
+            match log_result {
+                Ok(bollard::container::LogOutput::StdOut { message })
+                | Ok(bollard::container::LogOutput::StdErr { message }) => {
+                    output.push_str(&String::from_utf8_lossy(&message));
+                }
+                Ok(_) => {}
+                Err(e) => return Err(format!("Error streaming logs: {}", e)),
             }
-            Ok(_) => {}
-            Err(e) => return Err(format!("Error streaming logs: {}", e)),
         }
-    }
 
+        Ok(output)
+    } else {
+        println!("Container is not running.");
+        let mut logs = docker
+            .logs(
+                &id,
+                Some(LogsOptions::<String> {
+                    stdout: true,
+                    stderr: true,
+                    tail: String::from("all"),
+                    ..Default::default()
+                }),
+            )
+            .map_err(|e| format!("Error retrieving logs: {}", e));
+        let mut output = String::new();
+        // the logs are a single dump
+        while let Some(log_result) = logs.try_next().await.map_err(|e| format!("Error reading log stream: {}", e))? {
+        use bollard::container::LogOutput::*;
+        let chunk = match log_result {
+            StdOut { message } | StdErr { message } | Console { message } => {
+                String::from_utf8_lossy(&message).to_string()
+            },
+            _ => continue,
+        };
+        output.push_str(&chunk);
+        }
     Ok(output)
+    }
 }
 
 fn start_docker_container(config: UserConfiguration) -> Result<String, String> {
@@ -577,6 +639,7 @@ pub fn run() {
             stop_container_command,
             pause_container_command,
             unpause_container_command,
+            delete_container_command,
             get_container_logs,
             list_agents,
             get_agent_state,
