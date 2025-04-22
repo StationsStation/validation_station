@@ -54,8 +54,11 @@
 
 
   async function deleteAgent(id: string) {
+    isStopping[id] = true;
+    toast("Deleting agent...");
     await invoke("delete_container_command", { id });
     await fetchAgents();
+    isStopping[id] = false;
   }
 
   async function unpauseAgent(id: string) {
@@ -127,7 +130,7 @@
                 </Button.Root>
             {:else if isStopping[item.id]}
                 <Button.Root variant="outline" size="icon" disabled>
-                <StopCircle size={16} />
+                <StopCircle size={16} class="animate-spin" />
                 </Button.Root>
             {/if}
             <!-- Logs Modal -->

@@ -225,16 +225,6 @@ fn generate_agent_name() -> String {
     format!("{}-{}-{}", word, adjective, name)
 }
 
-async fn container_exists(id: &str) -> bool {
-    let docker = get_docker_client();
-    let containers = docker
-        .list_containers(None::<ListContainersOptions<String>>)
-        .await
-        .unwrap_or_default();
-
-    containers.iter().any(|c| c.id.as_deref() == Some(id))
-}
-
 async fn get_container_status() -> Vec<Agent> {
     let docker = get_docker_client();
 
@@ -270,6 +260,21 @@ async fn get_container_status() -> Vec<Agent> {
     }
 
     result
+}
+
+async fn container_exists(id: &str) -> bool {
+    let docker = get_docker_client();
+
+    let container_options: ListContainersOptions<String> = ListContainersOptions {
+        all: true,
+        ..Default::default()
+    };
+    let containers = docker
+        .list_containers(Some(container_options))
+        .await
+        .unwrap_or_default();
+
+    containers.iter().any(|c| c.id.as_deref() == Some(id))
 }
 
 #[tauri::command]
