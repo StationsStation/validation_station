@@ -1,14 +1,30 @@
 # Changelog
 
-## [v0.1.7](https://github.com/StationsStation/validation_station/tree/v0.1.7) (2025-04-14)
+## [v0.1.9](https://github.com/StationsStation/validation_station/tree/v0.1.9) (2025-04-22)
 
-## [v0.1.6](https://github.com/StationsStation/validation_station/tree/v0.1.6) (2025-04-14)
+**Merged pull requests:**
+
+- feat/show exited containers [\#7](https://github.com/StationsStation/validation_station/pull/7)
+
+## [v0.1.8](https://github.com/StationsStation/validation_station/tree/v0.1.8) (2025-04-21)
+
+## [0.1.8](https://github.com/StationsStation/validation_station/tree/0.1.8) (2025-04-21)
+
+**Merged pull requests:**
+
+- feat/key managements [\#6](https://github.com/StationsStation/validation_station/pull/6)
+
+## [0.1.7](https://github.com/StationsStation/validation_station/tree/0.1.7) (2025-04-14)
+
+## [v0.1.7](https://github.com/StationsStation/validation_station/tree/v0.1.7) (2025-04-14)
 
 ## [0.1.6](https://github.com/StationsStation/validation_station/tree/0.1.6) (2025-04-14)
 
-## [v0.1.5](https://github.com/StationsStation/validation_station/tree/v0.1.5) (2025-04-14)
+## [v0.1.6](https://github.com/StationsStation/validation_station/tree/v0.1.6) (2025-04-14)
 
 ## [0.1.5](https://github.com/StationsStation/validation_station/tree/0.1.5) (2025-04-14)
+
+## [v0.1.5](https://github.com/StationsStation/validation_station/tree/v0.1.5) (2025-04-14)
 
 ## [v0.1.4](https://github.com/StationsStation/validation_station/tree/v0.1.4) (2025-04-14)
 
