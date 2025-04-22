@@ -1,8 +1,7 @@
 <script lang="ts">
   import * as Table from "$lib/components/ui/table";
   import * as Button from "$lib/components/ui/button";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import * as Card from "$lib/components/ui/card";
+  import { toast } from "svelte-sonner";
   import { onMount } from "svelte";
   import { AgentStatus} from '../../types/src_tauri';
   import type { Agent } from '../../types/src_tauri';
@@ -11,24 +10,12 @@
     Pause, 
     Play, 
     StopCircle, 
-    FileText,
-    Activity,
-    Plus,
-    RefreshCw,
-    Download,
-    Delete,
     FileX,
-
-    OctagonX,
-
     CircleX
-
-
   } from 'lucide-svelte';
-  import AgentDeployer from "./AgentDeployer.svelte";
-  import { toast } from "svelte-sonner";
   import StatsModal from "./StatsModal.svelte";
-    import LogsModal from "./LogsModal.svelte";
+  import LogsModal from "./LogsModal.svelte";
+  import AgentDeployer from "./AgentDeployer.svelte";
 
   let agentsList : Agent[] = [];
   let isStopping: Record<string, boolean> = {};
@@ -84,8 +71,6 @@
     <h2 class="font-semibold">Agent Deployments</h2>
     <AgentDeployer />
   </div>
-
-	
 <Table.Root>
   <Table.Caption>Your Active Agents.</Table.Caption>
   <Table.Header>
@@ -125,8 +110,8 @@
                     <StopCircle size={16} />
                 </Button.Root>
             {:else if [AgentStatus.Exited].includes(item.status)}
-                <Button.Root variant="destructive" size="icon" on:click={() => stopAgent(item.id)}>
-                    <FileX size={16} />
+                <Button.Root variant="destructive" size="icon" on:click={() => deleteAgent(item.id)}>
+                  <CircleX size={16} />
                 </Button.Root>
             {:else if isStopping[item.id]}
                 <Button.Root variant="outline" size="icon" disabled>
@@ -142,9 +127,6 @@
               agentId={item.id}
               ></StatsModal>
             <!-- Delete Agent -->
-            <Button.Root variant="destructive" size="icon" on:click={() => deleteAgent(item.id)}>
-              <CircleX size={16} />
-            </Button.Root>
         </Table.Cell>
       </Table.Row>
     {/each}
