@@ -16,21 +16,21 @@ name = "agent_runner_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.2.0", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2.5.1", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.44.2", features = ["full"] }
 typeshare = "1.0.4"
 futures = "0.3"
-tauri-plugin-dialog = "2.0.0-beta.4" # match your tauri version
+tauri-plugin-dialog = "2.2.1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 bollard = "0.18.1"
-rand = { version = "0.9"  }
+rand = { version = "0.9.1"  }
 dirs = "6.0"
 base64 = "0.22"
 futures-util = "0.3"

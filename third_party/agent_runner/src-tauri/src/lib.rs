@@ -1,7 +1,11 @@
 mod types;
 use bollard::container::{
-    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions,
+    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions, 
 };
+
+use bollard::container::RemoveContainerOptions;
+
+use bollard::models::ContainerSummary;
 use tauri::path::BaseDirectory::AppData;
 use bollard::image::CreateImageOptions;
 use bollard::models::CreateImageInfo;
@@ -232,10 +236,16 @@ async fn container_exists(id: &str) -> bool {
 
 async fn get_container_status() -> Vec<Agent> {
     let docker = get_docker_client();
-    let containers = docker
-        .list_containers(None::<ListContainersOptions<String>>)
-        .await
-        .unwrap_or_default();
+
+    let container_options: ListContainersOptions<String> = ListContainersOptions {
+        all: true,
+        ..Default::default()
+    };
+
+    let containers : Vec<ContainerSummary> = docker
+        .list_containers(Some(container_options)
+        )
+        .await.expect("Failed to list containers");
 
     let mut result = vec![];
 
@@ -347,7 +357,7 @@ async fn get_container_logs(id: String) -> Result<String, String> {
     Ok(output)
 }
 
-fn start_docker_container(config: UserConfiguration) -> Result<(String), String> {
+fn start_docker_container(config: UserConfiguration) -> Result<String, String> {
     let rt = Runtime::new().map_err(|e| format!("Failed to create Tokio runtime: {}", e))?;
 
     rt.block_on(async {
@@ -399,7 +409,7 @@ fn start_docker_container(config: UserConfiguration) -> Result<(String), String>
             .map_err(|e| format!("❌ Error starting container: {}", e))?;
 
         println!("🚀 Container started with ID: {}", container.id);
-        Ok((container.id))
+        Ok(container.id)
     })
 }
 
@@ -460,12 +470,6 @@ fn get_app_data_dir(app: AppHandle) -> PathBuf {
     // Create the directory if it doesn't exist
     Some(path).expect("Failed to create app data directory")
 }
-
-use bollard::container::RemoveContainerOptions;
-
-use bollard::container::WaitContainerOptions;
-use bollard::models::ContainerWaitResponse;
-use futures::TryStreamExt;
 
 #[tauri::command]
 async fn generate_key_file(app: AppHandle, key_name: String, key_file: String) -> Result<String, String> {
