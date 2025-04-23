@@ -81,7 +81,7 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Package Linux binary
-        if: matrix.platform == 'ubuntu-22.04''
+        if: matrix.platform == 'ubuntu-22.04'
         id: package-linux
         run: |
           BIN_NAME=agent_runner_${RELEASE_VERSION}_amd64
