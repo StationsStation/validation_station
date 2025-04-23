@@ -26,6 +26,9 @@ jobs:
           - platform: 'windows-latest'
             args: ''
             docker_platform: 'windows/amd64' # adjust based on your image build support
+          - platform: 'ubuntu-22.04-arm64'
+            args: ''
+            docker_platform: 'linux/arm64'
 
 
     runs-on: ${{ matrix.platform }}
@@ -81,10 +84,22 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Package Linux binary
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-22.04' && matrix.docker_platform == 'linux/amd64'
         id: package-linux
         run: |
           BIN_NAME=agent_runner_${RELEASE_VERSION}_amd64
+          TAR_NAME=${BIN_NAME}.tar.gz
+
+          cp ./src-tauri/target/release/agent_runner $BIN_NAME
+          tar -czf $TAR_NAME $BIN_NAME
+
+          echo "file=third_party/agent_runner/${TAR_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Package Linux binary arm64
+        if: matrix.platform == 'ubuntu-22.04-arm64' && matrix.docker_platform == 'linux/arm64'
+        id: package-linux-arm64
+        run: |
+          BIN_NAME=agent_runner_${RELEASE_VERSION}_arm64
           TAR_NAME=${BIN_NAME}.tar.gz
 
           cp ./src-tauri/target/release/agent_runner $BIN_NAME
