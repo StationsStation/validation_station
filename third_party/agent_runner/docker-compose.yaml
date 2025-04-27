@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000" # Adjust if your app uses a different port
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    user: "1000:1000" # Match the non-root user created in Dockerfile (optional but clean)
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
