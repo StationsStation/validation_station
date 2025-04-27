@@ -18,7 +18,9 @@
       }
     ],
     "security": {
-      "csp": null
+        "dangerousDisableAssetCspModification": false,
+        "csp": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+
     }
   },
   "bundle": {

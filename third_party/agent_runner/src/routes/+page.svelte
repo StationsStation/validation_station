@@ -4,12 +4,30 @@
   import UserSettings from '$lib/components/UserSettings.svelte';
   import AgentTable from '$lib/components/AgentTable.svelte';
   import ConfigTable from '$lib/components/ConfigTable.svelte';
+  import Nodes from '$lib/components/Nodes.svelte';
+    import { getVersion } from "@tauri-apps/api/app";
+
+  let isRunningInTauri: boolean = false;
+  async function isTauri(): Promise<boolean> {
+    try {
+      await getVersion();
+      isRunningInTauri = true;
+    } catch {
+      isRunningInTauri = false;
+    }
+    return isRunningInTauri;
+  }
+
+  isTauri();
 </script>
 <!--  -->
 
 <title>Derolas</title>
 <div>
   <main>
+
+    {#if isRunningInTauri}
+
     <Card.Root>
       <Card.Content>
         <Card.Root>
@@ -37,4 +55,7 @@
         </Card.Root>
       </Card.Content>
     </Card.Root>
+    {:else}
+      <Nodes></Nodes>
+    {/if}
 </div>
