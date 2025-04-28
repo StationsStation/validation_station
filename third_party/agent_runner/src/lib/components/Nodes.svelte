@@ -4,39 +4,29 @@
   import { switchNetwork, } from '@wagmi/core';
   import type Provider from "@walletconnect/ethereum-provider";
   import type { Address, ProviderConnectInfo, Chain } from "viem";
-  import { MessageCircleWarningIcon,  HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
+  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
   import * as Button from "./ui/button";
-  import * as Badge from "./ui/badge";
-  import * as Tooltip from "./ui/tooltip";
   import * as Input from "./ui/input";
   import * as Progress from "./ui/progress";
+  import * as Seperator from "./ui/separator";
   import * as Alert from "./ui/alert";
-  import * as Accordion from "./ui/accordion";
-  import { ChevronDown, } from "lucide-svelte";
-	import { WC, disconnectWagmi} from 'svelte-wagmi';
-  import { defaultConfig } from 'svelte-wagmi';
   import * as Card from "$lib/components/ui/card";
-	import { chainId } from 'svelte-wagmi';
-	import { signerAddress } from 'svelte-wagmi';
-    import { get } from "svelte/store";
 import { getVersion } from '@tauri-apps/api/app';
     import { onDestroy, onMount } from 'svelte';
 import { walletConnect } from '@wagmi/connectors';
 import Separator from './ui/separator/separator.svelte';
 import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
 import { toast } from "svelte-sonner";
-import { connected } from 'svelte-wagmi';
 
 import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
-import { wagmiConfig } from 'svelte-wagmi';
 import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
 
+import { WC, disconnectWagmi, defaultConfig, chainId, signerAddress, connected, wagmiConfig } from 'svelte-wagmi';
 
 let PUBLIC_WALLETCONNECT_ID = "189298bf7ea32b9f16f1369599ad0ad4"
 
 let config: { appName: string; walletConnectProjectId: string; connectors: CreateConnectorFn<Provider, { connect(parameters?: { chainId?: number | undefined; isReconnecting?: boolean | undefined; pairingTopic?: string | undefined; }): Promise<{ accounts: readonly Address[]; chainId: number; }>; getNamespaceChainsIds(): number[]; getRequestedChainsIds(): Promise<number[]>; isChainsStale(): Promise<boolean>; onConnect(connectInfo: ProviderConnectInfo): void; onDisplayUri(uri: string): void; onSessionDelete(data: { topic: string; }): void; setRequestedChainsIds(chains: number[]): void; requestedChainsStorageKey: `${string}.requestedChains`; }, { [x: `${string}.requestedChains`]: number[]; }>[] | CreateConnectorFn[]; appIcon?: string | null | undefined; appDescription?: string | null | undefined; appUrl?: string | null | undefined; autoConnect?: boolean | undefined; alchemyId?: string | null | undefined; chains?: Chain[] | null | undefined; }
 
-let epochProgress = 60; // e.g., 60% through
 let epochRewards = 0
 let incentiveBalance = 0
 let data = {}
@@ -48,44 +38,18 @@ let canPlayGame = false;
 let epochNumber = 0;
 let isRunningInTauri = false;
 let totalDonated = 0;
-let contributors = 0
-let totalRewards = 0
 let epochLength = 100; // e.g., 100 blocks
 let blocksRemaining = epochLength;
 let account: Address | undefined;
 let animatedPercent = 0;
 let userCurrentShare = 0;
 let userClaimable = 0;
-let isOwner = false;
 
 let userContribution = 0;
 let userCurrentDonation = 0;
 let currentTab = 'contribute'; // or 'info'
 
 let minimalDonation = 0.00001; // e.g., 0.1 ETH
-$: minimalDonation
-
-$: userContribution
-
-$: blocksRemaining
-$: contributors
-$: totalRewards
-$: epochLength
-$: percentCompleted
-$: epochRewards
-$: canPlayGame
-$: incentiveBalance
-$: totalRewards
-$: chainId
-$: signerAddress
-$: isRunningInTauri;
-$: account
-$: totalDonated
-$: userClaimable
-$: userCurrentShare
-$: userCurrentDonation
-$: isOwner
-
 
 const SUPPORTED_CHAIN_ID = base.id;
 
@@ -118,7 +82,6 @@ async function connect() {
 			console.error('WalletConnect failed', e);
 		}
 }
-
 
 async function isTauri(): Promise<boolean> {
   try {
@@ -172,10 +135,9 @@ async function isTauri(): Promise<boolean> {
     intervalId = setInterval(() => {
       refreshData();
       console.log('Data refreshed:', data);
-    }, 1000);
+    }, 2000);
    
   });
-
 
     async function refreshData() {
 
@@ -207,11 +169,25 @@ async function isTauri(): Promise<boolean> {
 </script>
 
 {#if !isRunningInTauri}
-<header class="w-full bg-black text-green-400 font-mono text-sm px-4 py-3 flex justify-between items-center">
-  <div class="font-bold tracking-wide text-green-300">
+<header class="w-full bg-black text-green-400 font-mono text-sm px-4 py-3 flex justify-between items-center flex-wrap">
+
+  <!-- Left side (empty) -->
+  <div class="w-1/3 flex justify-start">
+    <!-- Optional: Add logo or leave blank -->
   </div>
 
-  <div class="flex items-center gap-4">
+  <!-- Center navigation -->
+  <div class="w-1/3 flex justify-center gap-4">
+    <Button.Root on:click={() => currentTab = 'contribute'} variant={currentTab === 'contribute' ? 'default' : 'outline'}>
+      Contribute
+    </Button.Root>
+    <Button.Root on:click={() => currentTab = 'info'} variant={currentTab === 'info' ? 'default' : 'outline'}>
+      How It Works
+    </Button.Root>
+  </div>
+
+  <!-- Right side wallet controls -->
+  <div class="w-1/3 flex justify-end items-center gap-4 flex-wrap">
 
     {#if $chainId != SUPPORTED_CHAIN_ID && $connected}
       <Alert.Root variant="destructive" class="mb-3">
@@ -230,29 +206,19 @@ async function isTauri(): Promise<boolean> {
       </Alert.Root>
     {/if}
 
-
-<div class="flex justify-center gap-4 mb-6">
-  <Button.Root on:click={() => currentTab = 'contribute'} variant={currentTab === 'contribute' ? 'default' : 'outline'}>
-    Contribute
-  </Button.Root>
-  <Button.Root on:click={() => currentTab = 'info'} variant={currentTab === 'info' ? 'default' : 'outline'}>
-    How It Works
-  </Button.Root>
-</div>
-
     {#if $signerAddress}
       <div class="flex flex-col text-right leading-tight">
-        <span class="text-green-500">Chain: {$chainId}</span>
-        <span class="text-green-300 truncate max-w-[160px]">{$signerAddress}</span>
+        <span class="text-green-500 text-xs">Chain: {$chainId}</span>
+        <span class="text-green-300 truncate max-w-[120px] text-xs">{$signerAddress}</span>
       </div>
-        <Button.Root
-          class="bg-red-500 hover:bg-red-400 text-black font-bold px-3 py-1 rounded transition"
-          on:click={() => {
-            console.log('Disconnecting...');
-            disconnectWagmi();
-          }}>
-          Disconnect
-        </Button.Root>
+      <Button.Root
+        class="bg-red-500 hover:bg-red-400 text-black font-bold px-3 py-1 rounded transition"
+        on:click={() => {
+          console.log('Disconnecting...');
+          disconnectWagmi();
+        }}>
+        Disconnect
+      </Button.Root>
     {:else}
       <Button.Root
         class="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-1 rounded transition"
@@ -260,30 +226,58 @@ async function isTauri(): Promise<boolean> {
         Connect Wallet
       </Button.Root>
     {/if}
-  </div>
-</header>
-{/if}
 
-  <Card.Root class="space-y-8 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono">
+  </div>
+
+</header>
+
+{/if}
+<Card.Root class="space-y-8 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono">
   <!-- Header -->
-  <Card.Header class="text-center space-y-2">
-    <Card.Title class="text-2xl font-bold tracking-tight">Epochal Reward Split (ERS)</Card.Title>
+  <Card.Header class="text-center space-y-4">
+    <Card.Title class="text-2xl font-bold tracking-tight">
+      Epochal Reward Split (ERS)
+    </Card.Title>
+
     <Card.Description class="text-green-500 text-sm">
       Contribute ETH → Claim OLAS. Rewards distributed at epoch end.
     </Card.Description>
-    <Card.Description class="text-green-500 text-sm">
-      Current epoch: {epochNumber}  Current Reward Balance: {incentiveBalance / 1e18} OLAS Remaining Epochs {incentiveBalance / epochRewards}
-    </Card.Description>
-      <Separator class="my-2" />
+
+    <!-- Important Metrics Row -->
+    <div class="flex flex-col sm:flex-row justify-center gap-8 text-green-400 text-sm items-center">
+      <div class="flex items-center gap-2">
+        <Timer class="w-4 h-4" />
+        <span>Epoch {epochNumber}</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <CircleDollarSign class="w-4 h-4" />
+        <span>{(incentiveBalance / 1e18).toFixed(2)} OLAS Available</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <Flame class="w-4 h-4" />
+        <span>{(incentiveBalance / epochRewards).toFixed(0)} Epochs Remaining</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="space-y-1 pt-4">
+      <Progress.Root value={animatedPercent} class="h-2 rounded bg-green-900 transition-all" />
+      <div ></div>
+      <div class="text-xs text-center text-green-600">{percentCompleted}% complete</div>
+    </div>
+
   </Card.Header>
+
+
 {#if currentTab === 'contribute'}
   <div transition:fade>
 
-  <!-- Progress Bar -->
-  <div class="space-y-1">
+  <!-- <div class="space-y-1">
     <Progress.Root value={animatedPercent} class="h-2 rounded bg-green-900 transition-all" />
     <div class="text-xs text-right text-green-600">{percentCompleted}% complete</div>
-  </div>
+  </div> -->
 
   <div class="grid md:grid-cols-2 gap-6">
 
@@ -404,6 +398,9 @@ async function isTauri(): Promise<boolean> {
   <div transition:fade>
 
 
+
+
+
   <!-- Epoch Breakdown with callouts -->
   <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -441,7 +438,6 @@ async function isTauri(): Promise<boolean> {
     </div>
   </div>
 </div>
-  </div>
 
 <!-- Final Epoch Summary -->
 <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
@@ -536,7 +532,7 @@ async function isTauri(): Promise<boolean> {
   </div>
 </div>
  
-
+  </div>
 
 {/if}
 
