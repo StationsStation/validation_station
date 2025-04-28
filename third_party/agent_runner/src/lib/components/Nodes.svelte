@@ -398,79 +398,59 @@ async function isTauri(): Promise<boolean> {
   <div transition:fade>
 
 
+<div class="space-y-6 text-green-300 max-w-4xl mx-auto">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-
-
-  <!-- Epoch Breakdown with callouts -->
-  <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-    <!-- Reward Distribution Card -->
-    <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-      <div>
-        <Alert.Root variant="default" class="mb-3">
-          <Alert.Title >Proportional Split</Alert.Title>
-          <Separator class="my-2" />
-          <Alert.Description class="text-green-400">
-            8 contributors each round.
-          </Alert.Description>
-        </Alert.Root>
+    <!-- Proportional Split -->
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Users class="w-4 h-4" />
+        Proportional Split
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        8 contributors each round
       </div>
     </div>
-    
-    <!-- Epoch Progress Card -->
-    <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-      <div>
-        <Alert.Root variant={
-          epochRewards > 0 ? "default" : "destructive"
-        } class="mb-3">
-          {#if epochRewards > 0}
-            <Alert.Title>Epoch Rewards</Alert.Title>
-            <Separator class="my-2" />
-            <Alert.Description class="text-green-400">
-              {epochRewards / 1e18} OLAS each epoch.
-            </Alert.Description>
-          {:else}
-            <Alert.Title class="text-red-500">No rewards available</Alert.Title>
-          {/if}
-        </Alert.Root>
+
+    <!-- Epoch Rewards -->
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Gift class="w-4 h-4" />
+        Epoch Rewards
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        {(epochRewards / 1e18).toFixed(2)} OLAS each epoch
       </div>
     </div>
+
+    <!-- Epoch Progress -->
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Clock class="w-4 h-4" />
+        Epoch Progress
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        {blocksRemaining}/{epochLength} blocks
+      </div>
+    </div>
+
+    <!-- Minimum Donation -->
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <CircleDollarSign class="w-4 h-4" />
+        Minimum Donation
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        {(minimalDonation / 1e18).toFixed(6)} ETH
+      </div>
+    </div>
+
   </div>
-</div>
 
-<!-- Final Epoch Summary -->
-<div class="space-y-6 text-green-300 max-w-2xl mx-auto">
-  <!-- Epoch Breakdown with callouts -->
-  <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Epoch Progress Card -->
-      <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-        <div>
-          <Alert.Root variant="default" class="mb-3">
-            <Alert.Title>Epoch Progress</Alert.Title>
-            <Separator class="my-2" />
-            <Alert.Description class="text-green-400">
-              {blocksRemaining}/{epochLength} blocks
-            </Alert.Description>
-          </Alert.Root>
-        </div>
-      </div>
-      <!-- Reward Distribution Card -->
-      <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-        <div>
-          <Alert.Root variant="default" class="mb-3">
-            <Alert.Title>Minimum Donation</Alert.Title>
-            <Separator class="my-2" />
-            <Alert.Description class="text-green-400">
-              {minimalDonation / 1e18} ETH
-            </Alert.Description>
-          </Alert.Root>
-        </div>
-      </div>
-    </div>
+
+
   <!-- Epoch Summary -->
-    <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
+    <div class="space-y-6 text-green-300 max-w-4xl mx-auto">
      <Card.Root>
        <Card.Content>
          <ul class="space-y-6">
@@ -532,7 +512,6 @@ async function isTauri(): Promise<boolean> {
   </div>
 </div>
  
-  </div>
 
 {/if}
 
