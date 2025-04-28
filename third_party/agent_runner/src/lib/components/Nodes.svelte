@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
 
+  import { switchNetwork, } from '@wagmi/core';
   import type Provider from "@walletconnect/ethereum-provider";
   import type { Address, ProviderConnectInfo, Chain } from "viem";
-  import { MessageCircleWarningIcon,  HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical } from "lucide-svelte";
+  import { MessageCircleWarningIcon,  HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
   import * as Button from "./ui/button";
   import * as Badge from "./ui/badge";
   import * as Tooltip from "./ui/tooltip";
@@ -54,9 +56,11 @@ let account: Address | undefined;
 let animatedPercent = 0;
 let userCurrentShare = 0;
 let userClaimable = 0;
+let isOwner = false;
 
 let userContribution = 0;
 let userCurrentDonation = 0;
+let currentTab = 'contribute'; // or 'info'
 
 let minimalDonation = 0.00001; // e.g., 0.1 ETH
 $: minimalDonation
@@ -80,7 +84,27 @@ $: totalDonated
 $: userClaimable
 $: userCurrentShare
 $: userCurrentDonation
+$: isOwner
 
+
+const SUPPORTED_CHAIN_ID = base.id;
+
+
+
+let chains = [
+  base,
+];
+
+let pendingChainId: number | null = null;
+
+async function handleSwitch(chainId: number) {
+    pendingChainId = chainId;
+    try {
+      await switchNetwork({ chainId });
+    } finally {
+      pendingChainId = null;
+    }
+  }
 
 
 async function connect() {
@@ -188,6 +212,34 @@ async function isTauri(): Promise<boolean> {
   </div>
 
   <div class="flex items-center gap-4">
+
+    {#if $chainId != SUPPORTED_CHAIN_ID && $connected}
+      <Alert.Root variant="destructive" class="mb-3">
+        <Alert.Title class="text-red-500">Unsupported Network</Alert.Title>
+        <Alert.Description class="text-red-400">
+          Please switch to the Base network.
+          {#each chains as chain}
+            <Button.Root
+              on:click={() => handleSwitch(chain.id)}
+              disabled={pendingChainId === chain.id}
+            >
+              {pendingChainId === chain.id ? 'Switching...' : `Switch to ${chain.name}`}
+            </Button.Root>
+          {/each}
+        </Alert.Description>
+      </Alert.Root>
+    {/if}
+
+
+<div class="flex justify-center gap-4 mb-6">
+  <Button.Root on:click={() => currentTab = 'contribute'} variant={currentTab === 'contribute' ? 'default' : 'outline'}>
+    Contribute
+  </Button.Root>
+  <Button.Root on:click={() => currentTab = 'info'} variant={currentTab === 'info' ? 'default' : 'outline'}>
+    How It Works
+  </Button.Root>
+</div>
+
     {#if $signerAddress}
       <div class="flex flex-col text-right leading-tight">
         <span class="text-green-500">Chain: {$chainId}</span>
@@ -212,7 +264,7 @@ async function isTauri(): Promise<boolean> {
 </header>
 {/if}
 
-  <Card.Root class="space-y-8 p-6 rounded-xl shadow-lg border border-green-500 bg-black text-green-400 font-mono">
+  <Card.Root class="space-y-8 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono">
   <!-- Header -->
   <Card.Header class="text-center space-y-2">
     <Card.Title class="text-2xl font-bold tracking-tight">Epochal Reward Split (ERS)</Card.Title>
@@ -224,7 +276,8 @@ async function isTauri(): Promise<boolean> {
     </Card.Description>
       <Separator class="my-2" />
   </Card.Header>
-
+{#if currentTab === 'contribute'}
+  <div transition:fade>
 
   <!-- Progress Bar -->
   <div class="space-y-1">
@@ -232,122 +285,90 @@ async function isTauri(): Promise<boolean> {
     <div class="text-xs text-right text-green-600">{percentCompleted}% complete</div>
   </div>
 
+  <div class="grid md:grid-cols-2 gap-6">
 
+  <!-- Contribution Overview -->
+  <Card.Root class="p-4 border border-green-500 bg-black text-green-400 shadow-md">
+    <Card.Header class="pb-2">
+      <Card.Title class="text-base font-bold">Contribution Overview</Card.Title>
+    </Card.Header>
+    <Card.Content class="grid grid-cols-2 gap-y-1 text-sm">
+      <div class="text-green-500">Your Contribution</div>
+      <div class="text-green-300 text-right">{(userCurrentDonation / 1e18).toFixed(6)} ETH</div>
 
+      <div class="text-green-500">Your Share</div>
+      <div class="text-green-300 text-right">{(userCurrentShare / 1e16).toFixed(2)} %</div>
 
+      <div class="text-green-500">Total Donations</div>
+      <div class="text-green-300 text-right">{(totalDonated / 1e18).toFixed(6)} ETH</div>
 
-<!-- Epochal Action Panel (Simplified) -->
-<div class="mt-8 px-4 py-6 border border-green-700 bg-black/30 w-full max-w-4xl mx-auto">
-  <h3 class="text-center text-green-300 text-base font-medium mb-3">
-    Epoch Actions
-  </h3>
+      <div class="text-green-500">Minimum Donation</div>
+      <div class="text-green-300 text-right">{(minimalDonation / 1e18).toFixed(6)} ETH</div>
+    </Card.Content>
+  </Card.Root>
 
-  <!-- Connection Status -->
-  <!-- Connection Status -->
-{#if $connected}
-  {#if canPlayGame && blocksRemaining > 0}
-    <Input.Root class="mb-3" disabled={blocksRemaining == 0 || userCurrentShare > 0
-    } placeholder="Enter your contribution in ETH" bind:value={userContribution}>
-    </Input.Root>
+  <!-- Epoch Controls -->
+  <Card.Root class="p-4 border border-green-500 bg-black text-green-400 shadow-md">
+    <Card.Header class="pb-2">
+      <Card.Title class="text-base font-bold">Epoch Controls</Card.Title>
+    </Card.Header>
 
-    <!-- We now calculate the user share of the donation based on the donation -->
-
-    <div class="text-center text-green-500 text-sm mb-3">
-      {#if userContribution < minimalDonation / 1e18}
-        <span class="text-red-500">Minimum donation is {minimalDonation / 1e18} ETH</span>
+    <Card.Content class="flex flex-col gap-4">
+      {#if userClaimable > 0}
+        <Button.Root
+          class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded-lg"
+          on:click={claim}
+          disabled={!$connected}
+        >
+          Claim {(userClaimable / 1e18).toFixed(2)} OLAS
+        </Button.Root>
       {/if}
 
-      <Separator class="my-2" />
-
-      {#if !totalDonated}
-        <span class="text-green-500">No donations made yet</span>
-      {:else}
-        <span class="text-green-500">Total donations: {totalDonated / 1e18} ETH</span>
+      {#if blocksRemaining == 0}
+        <Button.Root
+          class="w-full bg-red-600 hover:bg-red-500 text-black font-bold py-3 rounded-lg"
+          on:click={endEpoch}
+          disabled={!$connected}
+        >
+          End Epoch
+        </Button.Root>
       {/if}
 
-      <Separator class="my-2" />
+      {#if $connected && blocksRemaining > 0}
+        <div class="flex flex-col gap-2 mt-4">
+          <Input.Root
+            placeholder="Enter at least {(minimalDonation / 1e18).toFixed(6)} ETH"
+            bind:value={userContribution}
+            type="number"
+            min={(minimalDonation / 1e18)}
+            step="0.00001"
+            max="0.01"
+            class="text-center"
+          />
 
-      {#if userCurrentShare > 0}
-        <span class="text-green-500">Your contribution: {userCurrentDonation / 1e18} ETH</span>
-      <Separator class="my-2" />
-        <span class="text-green-500">Your share of the pool: {userCurrentShare / 1e18 * 100} %</span>
+          {#if userContribution < minimalDonation / 1e18}
+            <Alert.Root variant="destructive">
+              <Alert.Description class="text-sm">
+                Minimum {(minimalDonation / 1e18).toFixed(6)} ETH required
+              </Alert.Description>
+            </Alert.Root>
+          {/if}
+
+          <Button.Root
+            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg"
+            on:click={() => contribute(userContribution * 1e18)}
+            disabled={userContribution < minimalDonation / 1e18 || blocksRemaining == 0 || userCurrentDonation > 0}
+          >
+            Contribute {userContribution} ETH
+          </Button.Root>
+        </div>
       {/if}
+    </Card.Content>
+  </Card.Root>
 
-      {#if userContribution > 0}
-        <span class="text-green-500">Projected contribution: {userContribution} ETH</span>
-      <Separator class="my-2" />
-
-        {#if totalDonated > 0}
-          <span class="text-green-500">Total donations: {totalDonated / 1e18} ETH</span>
-          <Separator class="my-2" />
-          <span class="text-green-500">Your Projected share of the pool: {userCurrentDonation / totalDonated * 100} %</span>
-        {:else}
-          <span class="text-green-500">No donations made yet</span>
-          <Separator class="my-2" />
-          <span class="text-green-500">Your Projected share of the pool: {100} %</span>
-          <Separator class="my-2" />
-          <span class="text-green-500">Your implied price per OLAS: {userContribution * 1e18 / epochRewards } ETH</span>
-        {/if}
-      {/if}
-
-    </div>
-
-  {:else}
-    <Alert.Root variant="destructive" class="mb-3">
-      {#if blocksRemaining === 0}
-        <Alert.Title class="text-red-500">Epoch in progress</Alert.Title>
-        <Alert.Description class="text-red-400">
-          You cannot play the game until the epoch is completed. Please end the epoch.
-        </Alert.Description>
-      {:else}
-        <Alert.Title class="text-red-500">
-          The game is not available until the contract has been funded.
-        </Alert.Title>
-      {/if}
-    </Alert.Root>
-  {/if}
-{:else}
-  <p class="text-center text-red-500 text-sm mb-3">Not connected</p>
-{/if}
-
-  <!-- Buttons -->
-  <div class="grid grid-cols-2 gap-3 mb-3">
-    <Button.Root variant="outline"
-      disabled={!$connected || !canPlayGame || blocksRemaining == 0 || userContribution < minimalDonation / 1e18}
-      on:click={() => contribute(userContribution * 1e18)}
-    >
-      <Flame class="w-4 h-4 mr-1" /> Contribute ETH
-    </Button.Root>
-
-    <Button.Root variant="outline"
-      disabled={!$connected}
-      on:click={() => topUpOlas(epochRewards)}
-    >
-      <Flame class="w-4 h-4 mr-1" /> Top Up OLAS for Game
-    </Button.Root>
-  </div>
-
-  <div class="grid grid-cols-2 gap-3">
-    <Button.Root variant="default"
-      disabled={!$connected || userClaimable == 0}
-      on:click={claim}
-    >
-      <Sparkles class="w-4 h-4 mr-1" /> Claim {userClaimable / 1e18} OLAS
-    </Button.Root>
-
-    <Button.Root variant="destructive"
-      disabled={!$connected || blocksRemaining > 0}
-      on:click={endEpoch}
-    >
-      <TimerReset class="w-4 h-4 mr-1" /> End Epoch
-    </Button.Root>
-  </div>
 </div>
 
-
-
-
-
+  </div>
 
 <!-- Epoch Metrics -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -378,9 +399,9 @@ async function isTauri(): Promise<boolean> {
     <Card.Content class="text-center text-2xl font-bold">{userCurrentShare / 1e18 * 100} %</Card.Content>
   </Card.Root>
 </div>
+{:else}
 
-
-
+  <div transition:fade>
 
 
   <!-- Epoch Breakdown with callouts -->
@@ -420,117 +441,103 @@ async function isTauri(): Promise<boolean> {
     </div>
   </div>
 </div>
+  </div>
+
 <!-- Final Epoch Summary -->
 <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
   <!-- Epoch Breakdown with callouts -->
   <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    
-    <!-- Epoch Progress Card -->
-    <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-      <div>
-        <!-- {#if blocksRemaining > 0}
-          <span class="inline-block text-xs bg-green-800 border border-green-600 text-green-300 rounded px-2 py-1">
-            {blocksRemaining} blocks remaining
-          </span>
-        {:else}
-          <span class="inline-block text-xs bg-green-800 border border-green-600 text-green-300 rounded px-2 py-1">
-            Epoch completed
-          </span>
-        {/if} -->
-        <Alert.Root variant="default" class="mb-3">
-          <Alert.Title>Epoch Progress</Alert.Title>
-          <Separator class="my-2" />
-          <Alert.Description class="text-green-400">
-            {blocksRemaining}/{epochLength} blocks
-          </Alert.Description>
-        </Alert.Root>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Epoch Progress Card -->
+      <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
+        <div>
+          <Alert.Root variant="default" class="mb-3">
+            <Alert.Title>Epoch Progress</Alert.Title>
+            <Separator class="my-2" />
+            <Alert.Description class="text-green-400">
+              {blocksRemaining}/{epochLength} blocks
+            </Alert.Description>
+          </Alert.Root>
+        </div>
+      </div>
+      <!-- Reward Distribution Card -->
+      <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
+        <div>
+          <Alert.Root variant="default" class="mb-3">
+            <Alert.Title>Minimum Donation</Alert.Title>
+            <Separator class="my-2" />
+            <Alert.Description class="text-green-400">
+              {minimalDonation / 1e18} ETH
+            </Alert.Description>
+          </Alert.Root>
+        </div>
       </div>
     </div>
+  <!-- Epoch Summary -->
+    <div class="space-y-6 text-green-300 max-w-2xl mx-auto">
+     <Card.Root>
+       <Card.Content>
+         <ul class="space-y-6">
+           <!-- ETH Donations -->
+           <li class="flex items-start gap-4">
+             <HandCoins class="w-8 h-8 text-green-300 mt-1" />
+             <p>
+               <strong class="text-green-100">ETH donations:</strong> Sent directly into the Balancer pool, increasing protocol liquidity in real time.
+             </p>
+           </li>
+           <!-- OLAS Rewards -->
+           <li class="flex items-start gap-4">
+             <Gift class="w-8 h-8 text-green-300 mt-1" />
+             <p>
+               <strong class="text-green-100">OLAS rewards:</strong> Distributed at the end of each epoch based on your pro-rata contribution to the donation pool.
+             </p>
+           </li>
+           <!-- Unclaimed Rewards -->
+           <li class="flex items-start gap-4">
+             <CircleDollarSign class="w-8 h-8 text-green-300 mt-1" />
+             <p>
+               <strong class="text-green-100">Unclaimed rewards:</strong> Recycled into the pool, improving long-term liquidity and fairness.
+             </p>
+           </li>
 
-    <!-- Reward Distribution Card -->
-    <div class="bg-green-950 border border-green-700 p-4 rounded-lg flex flex-col gap-2">
-      <div>
-        <Alert.Root variant="default" class="mb-3">
-          <Alert.Title>Minimum Donation</Alert.Title>
-          <Separator class="my-2" />
-          <Alert.Description class="text-green-400">
-            {minimalDonation / 1e18} ETH
-          </Alert.Description>
-        </Alert.Root>
-      </div>
+           <!-- Cooperative Strategy -->
+           <li class="flex items-start gap-4">
+             <Users class="w-8 h-8 text-green-300 mt-1" />
+             <p>
+               <strong class="text-green-100">Collaborative, Not Competitive:</strong> The optimal strategy is for everyone to donate the minimum and receive equal shares.
+             </p>
+           </li>
 
+           <!-- Prisoner's Dilemma -->
+           <li class="flex items-start gap-4">
+             <BrainCircuit class="w-8 h-8 text-green-300 mt-1" />
+             <p>
+               <strong class="text-green-100">Prisoner's Dilemma:</strong> Each epoch, you can donate more to increase your share of rewards — but if everyone does this, rewards are diluted.
+             </p>
+           </li>
+           <!-- Prisoner's Dilemma -->
+           <li class="flex items-start gap-4">
+
+             <Alert.Root variant="destructive" class="mb-3">
+               <Alert.Title class="text-red-500">Rewards Are Only Claimable for 1 Epoch!</Alert.Title>
+               <Separator class="my-2" />
+               <Alert.Description class="text-red-400">
+                 <p>
+                   If you do not claim your rewards within the current epoch, they will be donated to the pool and you will not receive them.
+                 </p>
+               </Alert.Description>
+             </Alert.Root>
+           </li>
+         </ul>
+       </Card.Content>
+     </Card.Root>
+
+    </div>
   </div>
 </div>
-
-<!-- Epoch Summary -->
-<div class="space-y-6 text-green-300 max-w-2xl mx-auto">
-
-<Card.Root>
-  <Card.Content>
-    <ul class="space-y-6">
-      
-      <!-- ETH Donations -->
-      <li class="flex items-start gap-4">
-        <HandCoins class="w-8 h-8 text-green-300 mt-1" />
-        <p>
-          <strong class="text-green-100">ETH donations:</strong> Sent directly into the Balancer pool, increasing protocol liquidity in real time.
-        </p>
-      </li>
-
-      <!-- OLAS Rewards -->
-      <li class="flex items-start gap-4">
-        <Gift class="w-8 h-8 text-green-300 mt-1" />
-        <p>
-          <strong class="text-green-100">OLAS rewards:</strong> Distributed at the end of each epoch based on your pro-rata contribution to the donation pool.
-        </p>
-      </li>
-
-      <!-- Unclaimed Rewards -->
-      <li class="flex items-start gap-4">
-        <CircleDollarSign class="w-8 h-8 text-green-300 mt-1" />
-        <p>
-          <strong class="text-green-100">Unclaimed rewards:</strong> Recycled into the pool, improving long-term liquidity and fairness.
-        </p>
-      </li>
-
-      <!-- Cooperative Strategy -->
-      <li class="flex items-start gap-4">
-        <Users class="w-8 h-8 text-green-300 mt-1" />
-        <p>
-          <strong class="text-green-100">Collaborative, Not Competitive:</strong> The optimal strategy is for everyone to donate the minimum and receive equal shares.
-        </p>
-      </li>
-
-      <!-- Prisoner's Dilemma -->
-      <li class="flex items-start gap-4">
-        <BrainCircuit class="w-8 h-8 text-green-300 mt-1" />
-        <p>
-          <strong class="text-green-100">Prisoner's Dilemma:</strong> Each epoch, you can donate more to increase your share of rewards — but if everyone does this, rewards are diluted.
-        </p>
-      </li>
-      <!-- Prisoner's Dilemma -->
-      <li class="flex items-start gap-4">
-
-        <Alert.Root variant="destructive" class="mb-3">
-          <Alert.Title class="text-red-500">Rewards Are Only Claimable for 1 Epoch!</Alert.Title>
-          <Separator class="my-2" />
-          <Alert.Description class="text-red-400">
-            <p>
-              If you do not claim your rewards within the current epoch, they will be donated to the pool and you will not receive them.
-            </p>
-          </Alert.Description>
-        </Alert.Root>
-
-      </li>
-
-
-    </ul>
-  </Card.Content>
-</Card.Root>
  
 
 
-
+{/if}
 
 </Card.Root>
