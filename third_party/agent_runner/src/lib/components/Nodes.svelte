@@ -1,9 +1,9 @@
 <script lang="ts">
   import { fade } from 'svelte/transition';
 
-  import { switchNetwork, } from '@wagmi/core';
+  import { serialize, switchNetwork, } from '@wagmi/core';
   import type Provider from "@walletconnect/ethereum-provider";
-  import type { Address, ProviderConnectInfo, Chain } from "viem";
+  import { type Address, type ProviderConnectInfo, type Chain, createWalletClient, custom, type Client } from "viem";
   import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
   import * as Button from "./ui/button";
   import * as Input from "./ui/input";
@@ -20,12 +20,15 @@ import { toast } from "svelte-sonner";
 
 import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
 import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
-
-import { WC, disconnectWagmi, defaultConfig, chainId, signerAddress, connected, wagmiConfig } from 'svelte-wagmi';
+    import { addChain } from 'viem/actions';
+    import { Title } from './ui/dialog';
 
 let PUBLIC_WALLETCONNECT_ID = "189298bf7ea32b9f16f1369599ad0ad4"
 
-let config: { appName: string; walletConnectProjectId: string; connectors: CreateConnectorFn<Provider, { connect(parameters?: { chainId?: number | undefined; isReconnecting?: boolean | undefined; pairingTopic?: string | undefined; }): Promise<{ accounts: readonly Address[]; chainId: number; }>; getNamespaceChainsIds(): number[]; getRequestedChainsIds(): Promise<number[]>; isChainsStale(): Promise<boolean>; onConnect(connectInfo: ProviderConnectInfo): void; onDisplayUri(uri: string): void; onSessionDelete(data: { topic: string; }): void; setRequestedChainsIds(chains: number[]): void; requestedChainsStorageKey: `${string}.requestedChains`; }, { [x: `${string}.requestedChains`]: number[]; }>[] | CreateConnectorFn[]; appIcon?: string | null | undefined; appDescription?: string | null | undefined; appUrl?: string | null | undefined; autoConnect?: boolean | undefined; alchemyId?: string | null | undefined; chains?: Chain[] | null | undefined; }
+
+
+
+
 
 let epochRewards = 0
 let incentiveBalance = 0
@@ -34,15 +37,16 @@ let intervalId: number;
 
 
 let percentCompleted = 0;
-let canPlayGame = false;
 let epochNumber = 0;
 let isRunningInTauri = false;
 let totalDonated = 0;
 let epochLength = 100; // e.g., 100 blocks
 let blocksRemaining = epochLength;
-let account: Address | undefined;
+let account: Address = "0x0000000000000000000000000000000000000000";
 let animatedPercent = 0;
 let userCurrentShare = 0;
+let canPlayGame = false;
+let signerAddress = "";
 let userClaimable = 0;
 
 let userContribution = 0;
@@ -54,29 +58,245 @@ let minimalDonation = 0.00001; // e.g., 0.1 ETH
 const SUPPORTED_CHAIN_ID = base.id;
 
 
+let chainId = 0;
+let connected = false;
+$: chainId = base.id;
+$: connected = !!account;
 
-let chains = [
-  base,
-];
+// 0. Define ui elements
 
-let pendingChainId: number | null = null;
+// 1. Define constants
+const projectId = PUBLIC_WALLETCONNECT_ID
+if (!projectId) {
+  throw new Error("You need to provide VITE_PROJECT_ID env variable");
+}
 
-async function handleSwitch(chainId: number) {
-    pendingChainId = chainId;
-    try {
-      await switchNetwork({ chainId });
-    } finally {
-      pendingChainId = null;
-    }
+
+
+let WalletConnectProvider: any;
+
+
+
+
+let walletClient: any = null;
+
+// return type is the wallet client
+async function setUpWc(): Client{
+let result = await setUpInjectedWallet();
+return result;
+ if (!WalletConnectProvider) {
+    WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).EthereumProvider;
   }
 
+  const wcProvider = await WalletConnectProvider.init({
+    projectId: PUBLIC_WALLETCONNECT_ID,
+    chains: [base.id],
+    showQrModal: false,
+    disableProviderPing: true, // Often needed for browser wallet connections
+
+  });
+
+  await wcProvider.connect();
+  walletClient = await createWalletClient({
+    chain: base,
+    transport: custom(wcProvider),
+  })
+
+  return await setUpWalletConnectBrowser();
+  return walletClient;
+}
+
+async function setUpInjectedWallet(): Promise<any> {
+  // Check if browser wallet is available
+  if (!window.ethereum) {
+    throw new Error('No injected wallet found. Please install MetaMask or another wallet extension.');
+  }
+  
+  // Request accounts access
+  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No accounts found or user rejected the connection');
+  }
+  
+  console.log("Accounts found:", accounts);
+  walletClient = createWalletClient({
+    chain: base,
+    transport: custom(window.ethereum),
+  });
+  
+  return walletClient;
+}
+
+
+
+async function setUpWalletConnectBrowser(): Promise<any> {
+  if (!WalletConnectProvider) {
+    WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).EthereumProvider;
+  }
+
+  const wcProvider = await WalletConnectProvider.init({
+    projectId: PUBLIC_WALLETCONNECT_ID,
+    chains: [base.id],
+    showQrModal: false, // Disable QR code modal for browser extension
+    methods: ['eth_sendTransaction', 'eth_signTransaction', 'eth_sign', 'personal_sign', 'eth_signTypedData'],
+    optionalMethods: ['eth_accounts', 'eth_requestAccounts', 'eth_chainId'],
+    events: ['chainChanged', 'accountsChanged'],
+    metadata: {
+      name: 'Your Application Name',
+      description: 'Your Application Description',
+      url: window.location.origin,
+      icons: ['https://yourapp.com/icon.png']
+    }
+  });
+
+  console.log("WalletConnectProvider HERE:", wcProvider);
+  // Add timeout to prevent hanging promises
+  const connectPromise = new Promise(async (resolve, reject) => {
+    // Set a timeout to reject if connection takes too long
+    const timeoutId = setTimeout(() => {
+      reject(new Error("WalletConnect browser connection timed out"));
+    }, 30000); // 30 second timeout
+    
+    try {
+      // Listen for connection events
+      wcProvider.on("display_uri", () => {
+        console.log("WalletConnect ready to connect");
+      });
+      
+      wcProvider.on("connect", () => {
+        clearTimeout(timeoutId);
+        resolve(true);
+      });
+      
+      wcProvider.on("disconnect", (code: number, reason: string) => {
+        console.log(`WalletConnect disconnected: ${code} - ${reason}`);
+        reject(new Error(`WalletConnect disconnected: ${reason}`));
+      });
+      
+      // Initiate connection
+      await wcProvider.connect();
+      clearTimeout(timeoutId);
+      resolve(true);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      reject(error);
+    }
+  });
+  
+  // Wait for connection to complete
+  await connectPromise;
+
+  // Create wallet client once connected
+  walletClient = createWalletClient({
+    chain: base,
+    transport: custom(wcProvider),
+  });
+  
+  return walletClient;
+}
+
+
+
+function disconnectWallet() {
+  console.log('Disconnecting from WalletConnect...');
+  walletClient = null
+  account = "0x0000000000000000000000000000000000000000";
+  connected = false;
+  chainId = 0;
+}
+
+let pendingChainId: number | null = null;
+let connectChainName = "";
+
+
+/**
+ * Switch the connected wallet to a different chain
+ * @param newChain - The chain to switch to
+ */
+async function handleSwitch(newChain: Chain) {
+  pendingChainId = newChain.id;
+  
+  try {
+    console.log('Switching to chain:', newChain);
+    
+    // Make sure we have a wallet client
+    if (!walletClient) {
+      walletClient = await setUpWc(); // Or whichever method you're using to connect
+    }
+    
+    // Using viem's wallet client approach to switch chains
+    // Method 1: For MetaMask and most injected wallets
+    if (walletClient.transport.type === 'custom' && window.ethereum) {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${newChain.id.toString(16)}` }],
+      });
+    } 
+    // Method 2: For WalletConnect
+    else if (walletClient.provider && typeof walletClient.provider.request === 'function') {
+      await walletClient.provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${newChain.id.toString(16)}` }],
+      });
+    }
+    // Method 3: Using viem's switchChain method if available in your version
+    else if (typeof walletClient.switchChain === 'function') {
+      await walletClient.switchChain({ id: newChain.id });
+    }
+    // Fallback method
+    else {
+      throw new Error('No available method to switch chains with this wallet');
+    }
+    
+    // Update chainId state
+    chainId = newChain.id;
+    console.log('Successfully switched to chain ID:', chainId);
+  } catch (error) {
+    console.error('Failed to switch chain:', error);
+    
+    // Handle case where chain needs to be added first
+    if ((error as { code: number }).code === 4902) { // Chain not added to wallet
+
+      let addChainParams = {
+        chain: newChain, // Add the chain property
+        id: newChain.id,
+        name: newChain.name,
+        network: newChain.network,
+        nativeCurrency: newChain.nativeCurrency,
+        rpcUrls: newChain.rpcUrls,
+        blockExplorers: newChain.blockExplorers,
+      };
+      await addChain(walletClient, addChainParams);
+    } else {
+      throw error;
+    }
+  } finally {
+    pendingChainId = null;
+  }
+}
 
 async function connect() {
         console.log('Connecting to Ethereum...');
 		try {
-            console.log('Connecting to WalletConnect...');
-			let res = await WC();
-            console.log('WalletConnect connected' + res);
+        console.log('Connecting to WalletConnect...');
+        let w = await setUpWc();
+        console.log('WalletConnect initialized:', w);
+        const accounts = await w.getAddresses();
+        account = accounts[0];
+        connected = true;
+        // w.switchChain({ id: base.id });
+        chainId = await w.getChainId();
+
+        if (!account) {
+          console.error("No account found. Please connect your wallet.");
+          account = "0x0000000000000000000000000000000000000";
+        }
+        console.log('WalletConnect switched to Base:', w);
+        console.log('Account:', accounts[0]);
+        console.log('Chain ID:', chainId);
+        console.log('Connected:', connected);
+        refreshData();
 
 		} catch (e) {
 			console.error('WalletConnect failed', e);
@@ -104,46 +324,22 @@ async function isTauri(): Promise<boolean> {
 
     console.log('Initializing WalletConnect...');
 
-    const chains = [mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc]; // Add any others you want
-    config = {
-      appName: 'erc.kit',
-      walletConnectProjectId: PUBLIC_WALLETCONNECT_ID,
-      chains: chains,
-      connectors: [
-        walletConnect({
-          projectId: PUBLIC_WALLETCONNECT_ID,
-          metadata: {
-            name: 'erc.kit',
-            description: 'Tauri Dev App',
-            url: 'http://localhost',
-            icons: ['https://walletconnect.com/walletconnect-logo.png']
-          },
-          relayUrl: 'wss://relay.walletconnect.com'
-        })
-      ]
-    };
-    wagmi = defaultConfig(config);
-    console.log('Wagmi config:', wagmi);
-
-
-    console.log('WalletConnect initialized');
-    await wagmi.init();
-    console.log('Contracts loaded');
-    account = await getAccount($wagmiConfig)
-    console.log('Account:', account);
-    refreshData();
     intervalId = setInterval(() => {
       refreshData();
-      console.log('Data refreshed:', data);
+      // console.log('Data refreshed:', data);
     }, 2000);
    
   });
 
     async function refreshData() {
 
-    const data = await loadContracts(account.address);
+    if (!account) {
+      console.error("Account is undefined. Cannot load contracts.");
+      return;
+    }
+    const data = await loadContracts(account);
 
-    console.log('Data loaded:', data);
+    // console.log('Data loaded:', data);
     blocksRemaining = Number(data.blocksRemaining);
     totalDonated = Number(data.totalDonated);
     epochNumber = Number(data.currentEpoch);
@@ -156,79 +352,78 @@ async function isTauri(): Promise<boolean> {
     canPlayGame = data.canPlayGame;
     incentiveBalance = Number(data.incentiveBalance);
     percentCompleted = Math.floor((epochLength - blocksRemaining) / epochLength * 100);
-
     animatedPercent = Math.floor((epochLength - blocksRemaining) / epochLength * 100);
   }
 
-  onDestroy(() => {
-    clearInterval(intervalId);
-  });
-
+  // onDestroy(() => {
+  //   clearInterval(intervalId);
+  // });
 
 
 </script>
 
 {#if !isRunningInTauri}
-<header class="w-full bg-black text-green-400 font-mono text-sm px-4 py-3 flex justify-between items-center flex-wrap">
+<header class="w-full bg-black border-b border-green-700 shadow-lg px-6 py-4 grid grid-cols-1 sm:grid-cols-3 items-center text-center sm:text-left gap-4 sm:gap-0">
 
-  <!-- Left side (empty) -->
-  <div class="w-1/3 flex justify-start">
-    <!-- Optional: Add logo or leave blank -->
+  <!-- Center: Logo -->
+  <div class="text-green-400 text-xl font-mono font-bold tracking-wider justify-self-center">
+      <img src="/derolas.png" alt="Derolas Logo" class="h-20 w-auto" />
   </div>
-
-  <!-- Center navigation -->
-  <div class="w-1/3 flex justify-center gap-4">
-    <Button.Root on:click={() => currentTab = 'contribute'} variant={currentTab === 'contribute' ? 'default' : 'outline'}>
+  <!-- Left: Nav -->
+  <div class="flex justify-center sm:justify-start gap-4">
+    <Button.Root
+      variant="outline"
+      onclick={() => currentTab = 'contribute'}
+      class={`${currentTab === 'contribute' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
+      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 rounded font-mono`}
+    >
       Contribute
     </Button.Root>
-    <Button.Root on:click={() => currentTab = 'info'} variant={currentTab === 'info' ? 'default' : 'outline'}>
+    <Button.Root
+      variant="outline"
+      onclick={() => currentTab = 'info'}
+      class={`${currentTab === 'info' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
+      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 rounded font-mono`}
+    >
       How It Works
     </Button.Root>
   </div>
 
-  <!-- Right side wallet controls -->
-  <div class="w-1/3 flex justify-end items-center gap-4 flex-wrap">
 
-    {#if $chainId != SUPPORTED_CHAIN_ID && $connected}
-      <Alert.Root variant="destructive" class="mb-3">
-        <Alert.Title class="text-red-500">Unsupported Network</Alert.Title>
-        <Alert.Description class="text-red-400">
-          Please switch to the Base network.
-          {#each chains as chain}
-            <Button.Root
-              on:click={() => handleSwitch(chain.id)}
-              disabled={pendingChainId === chain.id}
-            >
-              {pendingChainId === chain.id ? 'Switching...' : `Switch to ${chain.name}`}
-            </Button.Root>
-          {/each}
-        </Alert.Description>
-      </Alert.Root>
-    {/if}
-
-    {#if $signerAddress}
-      <div class="flex flex-col text-right leading-tight">
-        <span class="text-green-500 text-xs">Chain: {$chainId}</span>
-        <span class="text-green-300 truncate max-w-[120px] text-xs">{$signerAddress}</span>
+  <!-- Right: Wallet -->
+  <div class="flex justify-center sm:justify-end items-center gap-3">
+    {#if account && connected && chainId == SUPPORTED_CHAIN_ID}
+      <div class="flex flex-col text-right">
       </div>
       <Button.Root
-        class="bg-red-500 hover:bg-red-400 text-black font-bold px-3 py-1 rounded transition"
-        on:click={() => {
-          console.log('Disconnecting...');
-          disconnectWagmi();
-        }}>
+        variant="destructive"
+        class="bg-red-600 hover:bg-red-500 text-white font-mono font-bold px-4 py-2 rounded text-sm transition-colors"
+        onclick={disconnectWallet}
+      >
         Disconnect
       </Button.Root>
+    {:else if account && connected && chainId != SUPPORTED_CHAIN_ID}
+      <div class="bg-red-950 border border-red-600 p-3 rounded text-sm font-mono text-red-300 space-y-2 max-w-xs">
+        <div class="font-bold text-red-400">Wrong Network</div>
+        <p>Please switch to Base to use this app.</p>
+        <Button.Root
+          onclick={() => handleSwitch(base)}
+          disabled={pendingChainId === base.id}
+          class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-mono"
+        >
+          {pendingChainId === base.id ? 'Switching...' : 'Switch to Base'}
+        </Button.Root>
+      </div>
     {:else}
       <Button.Root
-        class="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-1 rounded transition"
-        on:click={connect}>
+        variant="default"
+        class="bg-green-500 hover:bg-green-400 text-black font-mono font-bold px-5 py-2 rounded transition-colors"
+        onclick={connect}
+      >
         Connect Wallet
       </Button.Root>
     {/if}
-
   </div>
-
 </header>
 
 {/if}
@@ -307,12 +502,13 @@ async function isTauri(): Promise<boolean> {
       <Card.Title class="text-base font-bold">Epoch Controls</Card.Title>
     </Card.Header>
 
+    {#if connected}
     <Card.Content class="flex flex-col gap-4">
-      {#if userClaimable > 0}
+      {#if userClaimable > 0 && blocksRemaining > 0 && connected}
         <Button.Root
           class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded-lg"
           on:click={claim}
-          disabled={!$connected}
+          disabled={!connected}
         >
           Claim {(userClaimable / 1e18).toFixed(2)} OLAS
         </Button.Root>
@@ -322,13 +518,13 @@ async function isTauri(): Promise<boolean> {
         <Button.Root
           class="w-full bg-red-600 hover:bg-red-500 text-black font-bold py-3 rounded-lg"
           on:click={endEpoch}
-          disabled={!$connected}
+          disabled={!connected}
         >
           End Epoch
         </Button.Root>
       {/if}
 
-      {#if $connected && blocksRemaining > 0}
+      {#if connected && blocksRemaining > 0}
         <div class="flex flex-col gap-2 mt-4">
           <Input.Root
             placeholder="Enter at least {(minimalDonation / 1e18).toFixed(6)} ETH"
@@ -358,6 +554,7 @@ async function isTauri(): Promise<boolean> {
         </div>
       {/if}
     </Card.Content>
+    {/if}
   </Card.Root>
 
 </div>
@@ -472,7 +669,7 @@ async function isTauri(): Promise<boolean> {
            <li class="flex items-start gap-4">
              <CircleDollarSign class="w-8 h-8 text-green-300 mt-1" />
              <p>
-               <strong class="text-green-100">Unclaimed rewards:</strong> Recycled into the pool, improving long-term liquidity and fairness.
+               <strong class="text-green-100">Unclaimed rewards:</strong> Recycled back into the pool to enhance long-term liquidity and promote greater fairness among participants.
              </p>
            </li>
 

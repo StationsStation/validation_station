@@ -197,12 +197,12 @@ async function endEpoch() {
 
 
 async function loadContracts(userAddress: `0x${string}`) {
-  console.log('Loading game state...');
+  // console.log('Loading game state...');
 
   const _config = createConfig({
     chains: [base],
     client({ chain }) {
-      return createClient({ chain, transport: http("https://base.llamarpc.com") })
+      return createClient({ chain, transport: http("https://base.drpc.org") })
     },
   });
 
@@ -246,7 +246,7 @@ async function loadContracts(userAddress: `0x${string}`) {
   ] = gameState;
 
   
-  console.log('Game state:', gameState);
+  // console.log('Game state:', gameState);
 
 
   let state = {
@@ -266,7 +266,7 @@ async function loadContracts(userAddress: `0x${string}`) {
     canPlayGame: Boolean(canPlayGame),
     percentCompleted,
   };
-  console.log('Game state:', state);
+  // console.log('Game state:', state);
   return state;
 }
 
