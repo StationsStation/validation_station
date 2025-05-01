@@ -81,30 +81,6 @@ let WalletConnectProvider: any;
 let walletClient: any = null;
 
 // return type is the wallet client
-async function setUpWc(): Client{
-let result = await setUpInjectedWallet();
-return result;
- if (!WalletConnectProvider) {
-    WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).EthereumProvider;
-  }
-
-  const wcProvider = await WalletConnectProvider.init({
-    projectId: PUBLIC_WALLETCONNECT_ID,
-    chains: [base.id],
-    showQrModal: false,
-    disableProviderPing: true, // Often needed for browser wallet connections
-
-  });
-
-  await wcProvider.connect();
-  walletClient = await createWalletClient({
-    chain: base,
-    transport: custom(wcProvider),
-  })
-
-  return await setUpWalletConnectBrowser();
-  return walletClient;
-}
 
 async function setUpInjectedWallet(): Promise<any> {
   // Check if browser wallet is available
@@ -128,7 +104,12 @@ async function setUpInjectedWallet(): Promise<any> {
   return walletClient;
 }
 
-
+async function setUpWc(): Client{
+// let result = await setUpWalletConnectBrowser();
+let result = await setUpInjectedWallet();
+walletClient = result;
+return result;
+}
 
 async function setUpWalletConnectBrowser(): Promise<any> {
   if (!WalletConnectProvider) {
@@ -143,10 +124,10 @@ async function setUpWalletConnectBrowser(): Promise<any> {
     optionalMethods: ['eth_accounts', 'eth_requestAccounts', 'eth_chainId'],
     events: ['chainChanged', 'accountsChanged'],
     metadata: {
-      name: 'Your Application Name',
-      description: 'Your Application Description',
+      name: 'Derolas',
+      description: 'Contribution based game',
       url: window.location.origin,
-      icons: ['https://yourapp.com/icon.png']
+      icons: ['https://derolas.station.codes/derolasDark.png']
     }
   });
 
@@ -195,7 +176,6 @@ async function setUpWalletConnectBrowser(): Promise<any> {
   
   return walletClient;
 }
-
 
 
 function disconnectWallet() {
@@ -507,7 +487,7 @@ async function isTauri(): Promise<boolean> {
       {#if userClaimable > 0 && blocksRemaining > 0 && connected}
         <Button.Root
           class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded-lg"
-          on:click={claim}
+          onclick={() => claim(walletClient)}
           disabled={!connected}
         >
           Claim {(userClaimable / 1e18).toFixed(2)} OLAS
@@ -517,14 +497,23 @@ async function isTauri(): Promise<boolean> {
       {#if blocksRemaining == 0}
         <Button.Root
           class="w-full bg-red-600 hover:bg-red-500 text-black font-bold py-3 rounded-lg"
-          on:click={endEpoch}
+          on:click={() => endEpoch(walletClient)}
           disabled={!connected}
         >
           End Epoch
         </Button.Root>
       {/if}
 
-      {#if connected && blocksRemaining > 0}
+      {#if userCurrentShare > 0 && blocksRemaining > 0}
+        <Alert.Root variant="destructive">
+          <Alert.Description class="text-lg">
+            Waiting for the epoch to contribute again!
+          </Alert.Description>
+        </Alert.Root>
+      {/if}
+
+
+      {#if connected && blocksRemaining > 0 && userCurrentShare == 0}
         <div class="flex flex-col gap-2 mt-4">
           <Input.Root
             placeholder="Enter at least {(minimalDonation / 1e18).toFixed(6)} ETH"
@@ -546,7 +535,7 @@ async function isTauri(): Promise<boolean> {
 
           <Button.Root
             class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg"
-            on:click={() => contribute(userContribution * 1e18)}
+            on:click={() => contribute(userContribution * 1e18, walletClient)}
             disabled={userContribution < minimalDonation / 1e18 || blocksRemaining == 0 || userCurrentDonation > 0}
           >
             Contribute {userContribution} ETH

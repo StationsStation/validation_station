@@ -21,10 +21,11 @@ import IncentiveTokenAbi from './IERC20.json';
 import DerolasStakingJson from './DerolasStaking.json';
 import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
 import {writeContract} from 'viem/actions'
-import {custom, type Abi} from 'viem'
+import {custom, type Abi, type Client} from 'viem'
 import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
 import { createConfig, http } from '@wagmi/core'
 import { createClient, createWalletClient } from 'viem'
+import { toast } from 'svelte-sonner';
 const derolasAbi = DerolasStakingJson;
 
 
@@ -116,19 +117,11 @@ async function topUpOlas(topUpAmount: number) {
 
 }
 
-  async function claim() {
+  async function claim(walletClient: any) {
     console.log('Claiming OLAS...');
     // Logic to claim OLAS
-    const _accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const _account = _accounts[0];
-    console.log('Account:', _account);
-    const walletClient = createWalletClient({
-      chain: base,
-      transport: custom(window.ethereum)
-    });
     const accounts = await walletClient.getAddresses();
     console.log(accounts);
-
     const tx = await writeContract(walletClient, {
       abi: derolasAbi.abi,
       address: DEPLOYED_CONTRACT_ADDRESS,
@@ -136,6 +129,7 @@ async function topUpOlas(topUpAmount: number) {
       args: [],
       account: accounts[0],
       gas: BigInt(8888888),
+      chain: base,
     });
 
   }
@@ -144,16 +138,9 @@ async function topUpOlas(topUpAmount: number) {
 
 
 
-async function endEpoch() {
+async function endEpoch(walletClient: any) {
   console.log('Ending epoch...');
 
-  const _accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  const _account = _accounts[0];
-  console.log('Account:', _account);
-  const walletClient = createWalletClient({
-    chain: base,
-    transport: custom(window.ethereum)
-  });
   const accounts = await walletClient.getAddresses();
   console.log(accounts);
   const tx = await writeContract(walletClient, {
@@ -162,6 +149,7 @@ async function endEpoch() {
     functionName: 'endEpoch',
     args: [],
     account: accounts[0],
+    chain: base,
     gas: BigInt(8888888),
   });
 
@@ -170,27 +158,34 @@ async function endEpoch() {
 
 
 
-  async function contribute(donation: number) {
+  async function contribute(donation: number, walletClient: any) {
     console.log('Contributing ETH...');
     // Logic to contribute ETH
-    const _accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const _account = _accounts[0];
-    console.log('Account:', _account);
-    const walletClient = createWalletClient({
-      chain: base,
-      transport: custom(window.ethereum)
-    });
+    const accounts = await walletClient.getAddresses();
     const tx = await writeContract(walletClient, {
       abi: derolasAbi.abi,
       address: DEPLOYED_CONTRACT_ADDRESS,
       functionName: FunctionNames.donate,
       args: [],
-      account: _accounts[0],
+      account: accounts[0],
       value: BigInt(donation),
       gas: BigInt(8888888),
+      chain: base,
     });
 
     console.log('Transaction submitted:', tx);
+
+}
+
+
+async function checkTxnStatus(txHash: string, walletClient: any) {
+  console.log('Checking transaction status...');
+  const receipt = await walletClient.getTransactionReceipt(txHash);
+  if (receipt && receipt.status === 1) {
+    toast.success('Transaction successful!');
+  } else {
+    toast.error('Transaction failed!');
+  }
 
 }
 
