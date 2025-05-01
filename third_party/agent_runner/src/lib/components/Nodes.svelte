@@ -61,7 +61,7 @@ const SUPPORTED_CHAIN_ID = base.id;
 let chainId = 0;
 let connected = false;
 $: chainId = base.id;
-$: connected = !!account;
+$: connected = false;
 
 // 0. Define ui elements
 
