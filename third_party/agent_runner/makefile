@@ -15,3 +15,8 @@ dev:
 
 install:
 	nix-shell tauri-shell.nix --command 'yarn install'
+
+v_types:
+	nix-shell tauri-shell.nix --command 'npx openapi-typescript rpc-api-spec.yaml --output src/types/rpc-spec.ts'
+	nix-shell tauri-shell.nix --command 'npx openapi-typescript-codegen --input rpc-api-spec.yaml --output src/lib/vsapi --client fetch'
+

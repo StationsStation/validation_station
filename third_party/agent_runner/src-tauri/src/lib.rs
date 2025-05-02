@@ -1,14 +1,13 @@
 mod types;
 use bollard::container::{
-    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions, 
+    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, StartContainerOptions,
 };
 
 use bollard::container::RemoveContainerOptions;
 
 use bollard::container::WaitContainerOptions;
-use bollard::models::ContainerSummary;
-use tauri::path::BaseDirectory::AppData;
 use bollard::image::CreateImageOptions;
+use bollard::models::ContainerSummary;
 use bollard::models::CreateImageInfo;
 use bollard::models::HostConfig;
 use bollard::Docker;
@@ -16,9 +15,10 @@ use chrono::Utc;
 use futures::StreamExt;
 use rand;
 use rand::prelude::IndexedRandom;
+use tauri::path::BaseDirectory::AppData;
 use tauri::AppHandle;
-use tokio::runtime::Runtime;
 use tauri::Manager;
+use tokio::runtime::Runtime;
 
 use bollard::auth::DockerCredentials;
 use dirs::home_dir;
@@ -233,10 +233,10 @@ async fn get_container_status() -> Vec<Agent> {
         ..Default::default()
     };
 
-    let containers : Vec<ContainerSummary> = docker
-        .list_containers(Some(container_options)
-        )
-        .await.expect("Failed to list containers");
+    let containers: Vec<ContainerSummary> = docker
+        .list_containers(Some(container_options))
+        .await
+        .expect("Failed to list containers");
 
     let mut result = vec![];
 
@@ -333,8 +333,6 @@ async fn unpause_container_command(id: String) -> Result<String, String> {
         .map_err(|e| format!("Failed to unpause container {}: {}", id, e))
 }
 
-
-
 #[tauri::command]
 async fn delete_container_command(id: &str) -> Result<(), String> {
     let docker = get_docker_client();
@@ -356,7 +354,6 @@ async fn delete_container_command(id: &str) -> Result<(), String> {
         .map_err(|e| format!("Failed to remove container {}: {}", id, e))
 }
 
-
 use futures::TryStreamExt;
 
 #[tauri::command]
@@ -368,7 +365,6 @@ async fn get_container_logs(id: String) -> Result<String, String> {
         .await
         .map_err(|e| format!("Error inspecting container: {}", e))?;
     if container_status.state.unwrap().running.unwrap() {
-
         let mut logs = docker.logs(
             &id,
             Some(LogsOptions::<String> {
@@ -380,8 +376,6 @@ async fn get_container_logs(id: String) -> Result<String, String> {
         );
 
         let mut output = String::new();
-
-
 
         while let Some(log_result) = logs.next().await {
             match log_result {
@@ -410,17 +404,21 @@ async fn get_container_logs(id: String) -> Result<String, String> {
             .map_err(|e| format!("Error retrieving logs: {}", e));
         let mut output = String::new();
         // the logs are a single dump
-        while let Some(log_result) = logs.try_next().await.map_err(|e| format!("Error reading log stream: {}", e))? {
-        use bollard::container::LogOutput::*;
-        let chunk = match log_result {
-            StdOut { message } | StdErr { message } | Console { message } => {
-                String::from_utf8_lossy(&message).to_string()
-            },
-            _ => continue,
-        };
-        output.push_str(&chunk);
+        while let Some(log_result) = logs
+            .try_next()
+            .await
+            .map_err(|e| format!("Error reading log stream: {}", e))?
+        {
+            use bollard::container::LogOutput::*;
+            let chunk = match log_result {
+                StdOut { message } | StdErr { message } | Console { message } => {
+                    String::from_utf8_lossy(&message).to_string()
+                }
+                _ => continue,
+            };
+            output.push_str(&chunk);
         }
-    Ok(output)
+        Ok(output)
     }
 }
 
@@ -433,19 +431,17 @@ fn start_docker_container(config: UserConfiguration) -> Result<String, String> {
             eprintln!("❌ Error pulling image: {}", e);
             return Err(format!("Failed to pull image {}: {}", IMAGE_NAME, e));
         }
-        let volume_bindings = vec![
-            format!(
-                "{}:/app/ethereum_private_key.txt:ro",
-                config.private_key_path
-            ),
-        ];
-        let env_strings: Vec<String> = config.environment_vars
+        let volume_bindings = vec![format!(
+            "{}:/app/ethereum_private_key.txt:ro",
+            config.private_key_path
+        )];
+        let env_strings: Vec<String> = config
+            .environment_vars
             .into_iter()
             .map(|(k, v)| format!("{}={}", k, v))
             .collect();
 
         let env_refs: Vec<&str> = env_strings.iter().map(|s| s.as_str()).collect();
-
 
         let container_config = Config {
             image: Some(IMAGE_NAME),
@@ -492,7 +488,6 @@ fn start_container_command(config: UserConfiguration) -> String {
     }
 }
 
-
 // get the agent status
 #[tauri::command]
 async fn get_agent_state(id: String) -> StateResponse {
@@ -525,8 +520,6 @@ async fn get_agent_state(id: String) -> StateResponse {
     parsed_data
 }
 
-
-
 fn get_app_data_dir(app: AppHandle) -> PathBuf {
     let path = app
         .path()
@@ -539,37 +532,32 @@ fn get_app_data_dir(app: AppHandle) -> PathBuf {
 }
 
 #[tauri::command]
-async fn generate_key_file(app: AppHandle, key_name: String, key_file: String) -> Result<String, String> {
+async fn generate_key_file(
+    app: AppHandle,
+    key_name: String,
+    key_file: String,
+) -> Result<String, String> {
     // docker run --workdir /app/tmp -v (pwd):/app/tmp  -it --entrypoint /app/.venv/bin/autonomy 8ball030/capitalisation_station:latest generate-key ethereum
-
 
     // we check if the key exists in appdir
     let app_data_dir = get_app_data_dir(app);
 
-    let key_dir = app_data_dir
-        .join("keys");
+    let key_dir = app_data_dir.join("keys");
 
-    let key_path = key_dir 
-        .join(key_name.clone());
-    let full_key_file = key_path
-        .join(key_file.clone());
+    let key_path = key_dir.join(key_name.clone());
+    let full_key_file = key_path.join(key_file.clone());
 
     if full_key_file.exists() {
         println!("✅ Key file already exists at: {}", full_key_file.display());
         return Ok(format!("{}", full_key_file.display()));
     }
     // if not, we create the directory
-    fs::create_dir_all(full_key_file.parent().unwrap()).map_err(|e| {
-        format!(
-            "❌ Failed to create directory for key file: {}",
-            e
-        )
-    })?;
-
+    fs::create_dir_all(full_key_file.parent().unwrap())
+        .map_err(|e| format!("❌ Failed to create directory for key file: {}", e))?;
 
     println!("🛠️ Generating key file at: {}", full_key_file.display());
 
-    // we get the 
+    // we get the
     let docker = get_docker_client();
     let container_config = Config {
         image: Some(IMAGE_NAME),
@@ -578,9 +566,7 @@ async fn generate_key_file(app: AppHandle, key_name: String, key_file: String) -
             ..Default::default()
         }),
         cmd: Some(vec!["generate-key", "ethereum"]),
-        entrypoint: Some(vec![
-            "/app/.venv/bin/autonomy"
-        ]),
+        entrypoint: Some(vec!["/app/.venv/bin/autonomy"]),
         working_dir: Some("/app/tmp"),
         ..Default::default()
     };
@@ -600,28 +586,32 @@ async fn generate_key_file(app: AppHandle, key_name: String, key_file: String) -
     // wait for the container to finish
 
     let mut is_done = false;
-    
+
     while !is_done {
         let is_running = container_exists(&container.id).await;
-    
+
         if !is_running {
             println!("✅ Container finished running");
             is_done = true;
             continue;
         }
-    
+
         println!("🛠️ Waiting for container to finish...");
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 
-
-
     // ✅ Then remove the container
     docker
-        .remove_container(&container.id, Some(RemoveContainerOptions { force: true, ..Default::default() }))
+        .remove_container(
+            &container.id,
+            Some(RemoveContainerOptions {
+                force: true,
+                ..Default::default()
+            }),
+        )
         .await
         .map_err(|e| format!("❌ Error removing container: {}", e))?;
-    
+
     println!("✅ Container removed with ID: {}", container.id);
 
     println!("✅ Container removed with ID: {}", container.id);
@@ -629,14 +619,18 @@ async fn generate_key_file(app: AppHandle, key_name: String, key_file: String) -
     if fs::metadata(&full_key_file).is_ok() {
         Ok(format!("{}", full_key_file.display()))
     } else {
-        Err(format!("❌ Failed to generate key file at: {}", full_key_file.display()))
+        Err(format!(
+            "❌ Failed to generate key file at: {}",
+            full_key_file.display()
+        ))
     }
-
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_websocket::init())
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![

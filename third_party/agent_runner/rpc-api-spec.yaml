@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Validation Station API
+  version: 1.0.0
+  description: API for decentralized, agent-based RPC routing with dynamic failover and pricing.
+
+servers:
+  - url: https://api.validationstation.io/v1
+
+components:
+  schemas:
+    Address:
+      type: string
+      pattern: '^0x[a-fA-F0-9]{40}$'
+      description: Ethereum address
+
+    Score:
+      type: object
+      description: Provider performance metrics used to calculate penalty score.
+      properties:
+        latencyMs:
+          type: number
+        latencyIdealMs:
+          type: number
+        successRate:
+          type: number
+          format: float
+        throughput:
+          type: number
+        throughputIdeal:
+          type: number
+        outstandingRequests:
+          type: number
+        outstandingRequestsIdeal:
+          type: number
+        weightLatency:
+          type: number
+        weightSuccessRate:
+          type: number
+        weightThroughput:
+          type: number
+        weightOutstandingRequests:
+          type: number
+
+    ClientMetrics:
+      type: object
+      description: Performance metrics related to the user's request behavior.
+      properties:
+        totalRequests:
+          type: integer
+        successfulResponses:
+          type: integer
+        successRate:
+          type: number
+          format: float
+
+    User:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Address'
+        metrics:
+          $ref: '#/components/schemas/ClientMetrics'
+
+    Provider:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Address'
+        type:
+          type: string
+          enum: [proxy, node, validator]
+        supportedChains:
+          type: array
+          items:
+            type: string
+        score:
+          $ref: '#/components/schemas/Score'
+        pricePerMillionRequests:
+          type: number
+
+    Broker:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Address'
+        stakedValue:
+          type: number
+        routingScore:
+          type: number
+        managedProviders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+
+    Chain:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        rpcEndpoints:
+          type: array
+          items:
+            type: string
+        activeBrokers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+
+paths:
+  /users/{id}:
+    get:
+      summary: Get a user by Ethereum address
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/Address'
+      responses:
+        '200':
+          description: A user object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}/metrics:
+    get:
+      summary: Get client metrics for a user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/Address'
+      responses:
+        '200':
+          description: Metrics data for the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientMetrics'
+  /providers:
+    get:
+      summary: List all registered providers
+      responses:
+        '200':
+          description: A list of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+  /brokers:
+    get:
+      summary: List all brokers
+      responses:
+        '200':
+          description: A list of brokers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Broker'
+  /chains:
+    get:
+      summary: List supported chains
+      responses:
+        '200':
+          description: A list of chains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chain'

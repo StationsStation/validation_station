@@ -1,8 +1,7 @@
 // src/shared.rs
 
-use typeshare::typeshare;
 use std::collections::HashMap;
-
+use typeshare::typeshare;
 
 // We define an enum for the status of the agent
 

@@ -91,6 +91,18 @@ let strategiesToVars: Record<string, StrategyVars> = {
         value: "",
         provision_type: "string"
       },
+      BASE_RPC: {
+        name: "BASE_RPC",
+        description: "Base RPC URL",
+        value: "https://base.drpc.org",
+        provision_type: "string"
+      },
+      COOLDOWN_PERIOD: {
+        name: "COOLDOWN_PERIOD",
+        description: "Cooldown Time in Seconds",
+        value: "30",
+        provision_type: "string"
+      },
     }
   },
 };

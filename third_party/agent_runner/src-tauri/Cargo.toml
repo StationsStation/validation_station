@@ -38,4 +38,6 @@ futures-util = "0.3"
 openapi = { path = "./agent_client" } 
 tauri-plugin-store = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-http = "2"
+tauri-plugin-websocket = "2"
 
