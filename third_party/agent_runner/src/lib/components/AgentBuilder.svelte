@@ -88,7 +88,13 @@ let strategiesToVars: Record<string, StrategyVars> = {
       APPRISE_ENDPOINT: {
         name: "APPRISE_ENDPOINT",
         description: "Apprise Endpoint for Notifications",
-        value: "",
+        value: "ntfy://ntfy.sh/agent-arbing",
+        provision_type: "string"
+      },
+      BASE_RPC: {
+        name: "BASE_RPC",
+        description: "Base RPC URL",
+        value: "https://base.drpc.org",
         provision_type: "string"
       },
     }
