@@ -355,7 +355,7 @@ async function isTauri(): Promise<boolean> {
       variant="outline"
       onclick={() => currentTab = 'contribute'}
       class={`${currentTab === 'contribute' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
-      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 rounded font-mono`}
+      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 font-mono`}
     >
       Contribute
     </Button.Root>
@@ -363,12 +363,11 @@ async function isTauri(): Promise<boolean> {
       variant="outline"
       onclick={() => currentTab = 'info'}
       class={`${currentTab === 'info' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
-      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 rounded font-mono`}
+      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 font-mono`}
     >
       How It Works
     </Button.Root>
   </div>
-
 
   <!-- Right: Wallet -->
   <div class="flex justify-center sm:justify-end items-center gap-3">
@@ -377,19 +376,19 @@ async function isTauri(): Promise<boolean> {
       </div>
       <Button.Root
         variant="destructive"
-        class="bg-red-600 hover:bg-red-500 text-white font-mono font-bold px-4 py-2 rounded text-sm transition-colors"
+        class="bg-red-600 hover:bg-red-500 text-white font-mono font-bold px-4 py-2 text-sm transition-colors"
         onclick={disconnectWallet}
       >
         Disconnect
       </Button.Root>
     {:else if account && connected && chainId != SUPPORTED_CHAIN_ID}
-      <div class="bg-red-950 border border-red-600 p-3 rounded text-sm font-mono text-red-300 space-y-2 max-w-xs">
+      <div class="bg-red-950 border border-red-600 p-3 text-sm font-mono text-red-300 space-y-2 max-w-xs">
         <div class="font-bold text-red-400">Wrong Network</div>
         <p>Please switch to Base to use this app.</p>
         <Button.Root
           onclick={() => handleSwitch(base)}
           disabled={pendingChainId === base.id}
-          class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-mono"
+          class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 text-xs font-mono"
         >
           {pendingChainId === base.id ? 'Switching...' : 'Switch to Base'}
         </Button.Root>
@@ -397,7 +396,7 @@ async function isTauri(): Promise<boolean> {
     {:else}
       <Button.Root
         variant="default"
-        class="bg-green-500 hover:bg-green-400 text-black font-mono font-bold px-5 py-2 rounded transition-colors"
+        class="bg-green-500 hover:bg-green-400 text-black font-mono font-bold px-5 py-2 transition-colors"
         onclick={connect}
       >
         Connect Wallet
@@ -438,7 +437,7 @@ async function isTauri(): Promise<boolean> {
 
     <!-- Progress -->
     <div class="space-y-1 pt-4">
-      <Progress.Root value={animatedPercent} class="h-2 rounded bg-green-900 transition-all" />
+      <Progress.Root value={animatedPercent} class="h-2 bg-green-900 transition-all" />
       <div ></div>
       <div class="text-xs text-center text-green-600">{percentCompleted}% complete</div>
     </div>
@@ -450,7 +449,7 @@ async function isTauri(): Promise<boolean> {
   <div transition:fade>
 
   <!-- <div class="space-y-1">
-    <Progress.Root value={animatedPercent} class="h-2 rounded bg-green-900 transition-all" />
+    <Progress.Root value={animatedPercent} class="h-2 bg-green-900 transition-all" />
     <div class="text-xs text-right text-green-600">{percentCompleted}% complete</div>
   </div> -->
 

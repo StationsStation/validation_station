@@ -224,7 +224,7 @@ let configName: string = "";
       <Card.Content>
         <div class="key-config-container">
           <Card.Root class="key-mode-card">
-            <Select.Root onSelectedChange={onStrategySelected} bind:value={selectedStrategy}>
+            <Select.Root onSelectedChange={onStrategySelected} >
               <Select.Trigger class="w-[250px]">
                 <Select.Value placeholder="Select a Strategy" />
               </Select.Trigger>
@@ -238,23 +238,24 @@ let configName: string = "";
             </Select.Root>
           </Card.Root>
           <div class="my-8"></div>
-          {#if selectedStrategy}
-            <Card.Root class="strategy-config-card">
+            <Card.Root class="strategy-config-card h-96 overflow-y-auto p-4">
               {#if selectedStrategy}
-              {#each Object.entries(config.vars) as [key, varObj]}
-                <h6 class="text-sm font-semibold">{key}</h6>
-                <Input.Root
-                  type="text"
-                  placeholder={varObj.description}
-                  bind:value={varObj.value}
-                  class="w-full"
-                />
-              {/each}
+                <div class="flex flex-col gap-4">
+                  {#each Object.entries(config.vars) as [key, varObj]}
+                    <div>
+                      <h6 class="text-sm font-semibold">{key}</h6>
+                      <Input.Root
+                        type="text"
+                        placeholder={varObj.description}
+                        bind:value={varObj.value}
+                        class="w-full"
+                      />
+                    </div>
+                  {/each}
+                </div>
               {/if}
-             <div class="my-8"></div>
+              <div class="my-8"></div>
             </Card.Root>
-          {/if}
-
         <!-- Config Name -->
         <div class="flex items-center gap-0 my-8">
           <h5 class="text-sm font-semibold">Config Name:</h5>
