@@ -22,6 +22,7 @@ import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } fr
 import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
     import { addChain } from 'viem/actions';
     import { Title } from './ui/dialog';
+    import Metrics from './Metrics.svelte';
 
 let PUBLIC_WALLETCONNECT_ID = "189298bf7ea32b9f16f1369599ad0ad4"
 
@@ -357,7 +358,7 @@ async function isTauri(): Promise<boolean> {
       class={`${currentTab === 'contribute' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
       transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 font-mono`}
     >
-      Contribute
+      Play 
     </Button.Root>
     <Button.Root
       variant="outline"
@@ -365,8 +366,17 @@ async function isTauri(): Promise<boolean> {
       class={`${currentTab === 'info' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
       transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 font-mono`}
     >
-      How It Works
+      Info
     </Button.Root>
+    <Button.Root
+      variant="outline"
+      onclick={() => currentTab = 'metrics'}
+      class={`${currentTab === 'metrics' ? 'bg-green-500 text-black' : 'bg-black text-green-400 border-green-500'} 
+      transition-all duration-200 hover:bg-green-600 hover:text-black px-6 py-2 font-mono`}
+    >
+      Metrics
+    </Button.Root>
+
   </div>
 
   <!-- Right: Wallet -->
@@ -406,8 +416,10 @@ async function isTauri(): Promise<boolean> {
 </header>
 
 {/if}
+
 <Card.Root class="space-y-8 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono">
   <!-- Header -->
+{#if currentTab === 'contribute'}
   <Card.Header class="text-center space-y-4">
     <Card.Title class="text-2xl font-bold tracking-tight">
       Epochal Reward Split (ERS)
@@ -445,7 +457,6 @@ async function isTauri(): Promise<boolean> {
   </Card.Header>
 
 
-{#if currentTab === 'contribute'}
   <div transition:fade>
 
   <!-- <div class="space-y-1">
@@ -578,9 +589,24 @@ async function isTauri(): Promise<boolean> {
     <Card.Content class="text-center text-2xl font-bold">{userCurrentShare / 1e18 * 100} %</Card.Content>
   </Card.Root>
 </div>
-{:else}
+
+{:else if currentTab === 'info'}
 
   <div transition:fade>
+
+  <Card.Header class="text-center space-y-4">
+    <Card.Title class="text-2xl font-bold tracking-tight">
+      Epochal Reward Split (ERS)
+    </Card.Title>
+
+    <Card.Description class="text-green-500 text-sm">
+      Contribute ETH → Claim OLAS. Rewards distributed at epoch end.
+    </Card.Description>
+    </Card.Header>
+    <Card.Content> 
+    </Card.Content>
+
+    
 
 
 <div class="space-y-6 text-green-300 max-w-4xl mx-auto">
@@ -698,6 +724,28 @@ async function isTauri(): Promise<boolean> {
 </div>
  
 
+{:else if currentTab === 'metrics'}
+  <div transition:fade>
+
+  <Card.Header class="text-center space-y-4">
+    <Card.Title class="text-2xl font-bold tracking-tight">
+      Derolas Pool Metrics
+    </Card.Title>
+    <Card.Description class="text-green-500 text-sm">
+        The <a href="https://balancer.fi/pools/base/v3/0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7" target="_blank" rel="noopener noreferrer" class="underline hover:text-green-400">
+          Balancer pool
+        </a> is the heart of the Derolas ecosystem, providing liquidity and enabling on-chain transactions and capturing value for OLAS holders.
+      </Card.Description>
+
+    </Card.Header>
+    <Card.Content> 
+    <Metrics />
+    </Card.Content>
+
+    
+
+
+  </div>
 {/if}
 
 </Card.Root>

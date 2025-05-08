@@ -1,0 +1,581 @@
+<script lang="ts">
+  import { fade } from 'svelte/transition';
+
+  import { serialize, switchNetwork, } from '@wagmi/core';
+  import type Provider from "@walletconnect/ethereum-provider";
+  import { type Address, type ProviderConnectInfo, type Chain, createWalletClient, custom, type Client } from "viem";
+  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
+  import * as Button from "./ui/button";
+  import * as Input from "./ui/input";
+  import * as Progress from "./ui/progress";
+  import * as Seperator from "./ui/separator";
+  import * as Alert from "./ui/alert";
+  import * as Card from "$lib/components/ui/card";
+import { getVersion } from '@tauri-apps/api/app';
+    import { onDestroy, onMount } from 'svelte';
+import { walletConnect } from '@wagmi/connectors';
+import Separator from './ui/separator/separator.svelte';
+import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
+import { toast } from "svelte-sonner";
+
+import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
+import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
+    import { addChain } from 'viem/actions';
+    import { Title } from './ui/dialog';
+
+
+  import * as echarts from 'echarts';
+  
+  let chartDivRoi: HTMLElement | null | undefined;
+  let chartDivTVL: HTMLElement | null | undefined;
+  let chartDivSharePrice: HTMLElement | null | undefined;
+  let chartDivFees: HTMLElement | null | undefined;
+
+  let currentAPR: number = 0;
+  let currentTrades24h: number = 0;
+  let currentFees24h: number = 0;
+  let currentTVL: number = 0;
+
+
+const darkGreenTheme = {
+  backgroundColor: '#000000',
+  textStyle: {
+    color: '#00ff00',
+    fontFamily: 'monospace',
+  },
+  axisLine: {
+    lineStyle: {
+      color: '#00ff00',
+    },
+  },
+  splitLine: {
+    lineStyle: {
+      color: '#004400',
+    },
+  },
+  tooltip: {
+    backgroundColor: '#001100',
+    borderColor: '#00ff00',
+    textStyle: {
+      color: '#00ff00',
+    },
+    // we round to 3 decimal places
+  },
+};
+
+  
+
+// Dummy time series price data for 9 tokens
+const generateDummyData = () => {
+  const symbols = ["weETH", "WETH", "DAI", "OLAS", "USDC", "DRV", "cbBTC", "LBTC", "DEROLAS"];
+  const basePrices = {
+    weETH: 3200,
+    WETH: 3150,
+    DAI: 1.0,
+    OLAS: 2.5,
+    USDC: 1.0,
+    DRV: 0.25,
+    cbBTC: 64000,
+    LBTC: 63500,
+    DEROLAS: 1.0
+  };
+
+  const hours = 100;
+  const now = new Date();
+
+  const data = symbols.map(symbol => {
+    const prices = [];
+    let price = basePrices[symbol];
+    for (let i = 0; i < hours; i++) {
+      const time = new Date(now.getTime() - (hours - i) * 60 * 60 * 1000).toISOString();
+      const change = (Math.random() - 0.5) * 0.02; // ±1% volatility
+      if (symbol !== "DEROLAS") price *= 1 + change;
+      prices.push([time, parseFloat(price.toFixed(2))]);
+    }
+    return { name: symbol, 
+      type: "line", 
+      data: prices , 
+      emphasis: { focus: 'series' },
+      showSymbol:false,
+    };
+  });
+
+  return data;
+};
+
+import dayjs from 'dayjs';
+    import { dataDir } from '@tauri-apps/api/path';
+    import { Label } from 'bits-ui';
+
+const GRAPHQL_ENDPOINT = "https://api-v3.balancer.fi/";
+const POOL_ID = "0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7";
+
+const ADDRESSES = [
+  "0x04C0599Ae5A44757c0af6F9eC3b93da8976c150A",
+  "0x4200000000000000000000000000000000000006",
+  "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+  "0x54330d28ca3357F294334BDC454a032e7f353416",
+  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "0x9d0E8f5b25384C7310CB8C6aE32C8fbeb645d083",
+  "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+  "0xecAc9C5F704e954931349Da37F60E39f515c11c1"
+];
+const SYMBOLS = ["weETH", "WETH", "DAI", "OLAS", "USDC", "DRV", "cbBTC", "LBTC"];
+const ADDRESS_TO_SYMBOL = Object.fromEntries(ADDRESSES.map((a, i) => [a, SYMBOLS[i]]));
+
+const buildPriceQuery = (addresses, chain = "BASE", range = "THIRTY_DAY") => {
+  const fragments = addresses.map((addr, i) => `
+    token${i}: tokenGetHistoricalPrices(
+      addresses: ["${addr}"],
+      chain: ${chain},
+      range: ${range}
+    ) {
+      prices {
+        price
+        timestamp
+      }
+    }`).join("\n");
+
+  return `query { ${fragments} }`;
+};
+
+const buildDerolasQuery = (chain = "BASE", id = POOL_ID, range = "THIRTY_DAYS") => `
+  query {
+    poolGetSnapshots(chain: ${chain}, id: "${id}", range: ${range}) {
+      timestamp
+      totalLiquidity
+      totalShares
+      holdersCount
+      swapsCount
+      fees24h
+      sharePrice
+      totalSwapFee
+      totalLiquidity
+  }
+    }
+`;
+
+export async function generateAlignedPriceMatrix() {
+  const [tokenRes, derolaRes] = await Promise.all([
+    fetch(GRAPHQL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: buildPriceQuery(ADDRESSES) })
+    }),
+    fetch(GRAPHQL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: buildDerolasQuery() })
+    })
+  ]);
+
+  const tokenJson = await tokenRes.json();
+  const derolaJson = await derolaRes.json();
+
+  if (!tokenJson.data || !derolaJson.data.poolGetSnapshots)
+    throw new Error("Data fetch failed");
+
+  // Flatten token data
+  const tokenData = {};
+  for (const [key, value] of Object.entries(tokenJson.data)) {
+    const index = parseInt(key.replace("token", ""));
+    const address = ADDRESSES[index];
+    const symbol = ADDRESS_TO_SYMBOL[address];
+    const entries = value[0]?.prices?.filter(p => p.price != null) || [];
+
+    for (const { 
+      price, 
+      timestamp, 
+      
+    } of entries) {
+      const ts = dayjs.unix(timestamp).startOf('hour').toISOString();
+      if (!tokenData[ts]) tokenData[ts] = {};
+      tokenData[ts][symbol] = parseFloat(price);
+    }
+  }
+
+  // Process Derolas
+  const derolaPrices = derolaJson.data.poolGetSnapshots || [];
+
+  for (const snapshot of derolaPrices) {
+  const ts = dayjs.unix(snapshot.timestamp).startOf('hour').toISOString();
+  if (!tokenData[ts]) tokenData[ts] = {};
+  tokenData[ts]["DEROLAS"] = parseFloat(snapshot.sharePrice);
+  tokenData[ts]["_DEROLAS_META"] = {
+    totalLiquidity: parseFloat(snapshot.totalLiquidity),
+    totalShares: parseFloat(snapshot.totalShares),
+    holdersCount: snapshot.holdersCount,
+    swapsCount: snapshot.swapsCount,
+    fees24h: parseFloat(snapshot.fees24h),
+    totalSwapFee: parseFloat(snapshot.totalSwapFee),
+    sharePrice: parseFloat(snapshot.sharePrice),
+  };
+  currentTrades24h = snapshot.swapsCount;
+  currentFees24h = parseFloat(snapshot.fees24h);
+  currentTVL = parseFloat(snapshot.totalLiquidity);
+  currentAPR = (parseFloat(snapshot.fees24h) * 365 / parseFloat(snapshot.totalLiquidity)) * 100;
+
+
+}
+
+  // Filter timestamps to shared minimum
+  const allSymbols = [...SYMBOLS, "DEROLAS"];
+  const validTimestamps = Object.entries(tokenData)
+    .filter(([, row]) => allSymbols.every(sym => sym in row))
+    .map(([ts]) => ts)
+    .sort();
+
+  const minTs = validTimestamps[0];
+
+  const matrix = validTimestamps.map(ts => ({
+    timestamp: ts,
+    ...tokenData[ts]
+  })).filter(row => dayjs(row.timestamp).isAfter(minTs));
+
+  return matrix;
+}
+
+
+
+
+
+
+let chartRoi: echarts.ECharts;
+let chartTVL: echarts.ECharts;
+let chart24hFees: echarts.ECharts;
+
+let chartSharePrice: echarts.ECharts;
+
+
+  onMount(() => {
+    let data
+    const matrix = generateAlignedPriceMatrix();
+    chartRoi = echarts.init(chartDivRoi, darkGreenTheme,  { renderer: 'canvas' });
+    data = matrix.then((matrix) => {
+        const tokens = Object.keys(matrix[0]).filter(k => k !== "timestamp" && k !== "_DEROLAS_META");
+        const first = matrix[0];
+        const baseline = Object.fromEntries(tokens.map(t => [t, first[t]]));
+
+          return tokens.map(symbol => ({
+            name: symbol,
+            type: "line",
+            showSymbol: false,
+            emphasis: { focus: 'series' },
+            data: matrix.map(row => [
+              row.timestamp,
+              ((row[symbol] / baseline[symbol]) - 1) * 100
+            ])
+          }));
+        });
+
+    data.then((data) => {
+      pltData(data, chartRoi);
+    });
+
+    // longer term we will abstract the series logic, for now we mak another chart.
+
+    chartTVL = echarts.init(chartDivTVL, darkGreenTheme,  { renderer: 'canvas' });
+    data = matrix.then((matrix) => {
+      // We only want the derolas meta data
+      // We want to raw tvl 
+      const tokens = Object.keys(matrix[0]).filter(k => k !== "timestamp" && k === "_DEROLAS_META");
+
+      // no baseline needed for this chart as its a bar chart
+      // We do need to make suer the label is called "TVL" and not "_DEROLAS_META"
+      return tokens.map(symbol => ({
+        name: "TVL",
+        type: "bar",
+        showSymbol: false,
+        emphasis: { focus: 'series' },
+        data: matrix.map(row => [
+          row.timestamp,
+          row[symbol].totalLiquidity
+        ]),
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (params: any) => {
+            return `${params.value[1].toFixed(0)}`;
+          },
+          textStyle: {
+            color: '#00ff00',
+            fontSize: 10,
+          }
+        },
+      }));
+    });
+
+    data.then((data) => {
+      pltData(data, chartTVL);
+    });
+
+    chart24hFees = echarts.init(chartDivFees, darkGreenTheme,  { renderer: 'canvas' });
+    data = matrix.then((matrix) => {
+      // We only want the derolas meta data
+      // We want to raw tvl 
+      const tokens = Object.keys(matrix[0]).filter(k => k !== "timestamp" && k === "_DEROLAS_META");
+
+      // no baseline needed for this chart as its a bar chart
+      // We do need to make suer the label is called "TVL" and not "_DEROLAS_META"
+      return tokens.map(symbol => ({
+        name: "Fees",
+        type: "bar",
+        showSymbol: false,
+        emphasis: { focus: 'series' },
+        data: matrix.map(row => [
+          row.timestamp,
+          row[symbol].fees24h
+        ]),
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (params: any) => {
+            return `${params.value[1].toFixed(2)}`;
+          },
+          textStyle: {
+            color: '#00ff00',
+            fontSize: 10,
+          }
+        },
+      }));
+    });
+    data.then((data) => {
+      pltData(data, chart24hFees);
+    });
+
+  
+
+  chartSharePrice = echarts.init(chartDivSharePrice, darkGreenTheme,  { renderer: 'canvas' });
+
+
+data = matrix.then((matrix) => {
+  const tokens = Object.keys(matrix[0]).filter(k => k === "_DEROLAS_META");
+
+  return tokens.map(symbol => ({
+    name: "Share Price",
+    type: "line",
+    showSymbol: false,
+    emphasis: { focus: 'series' },
+    data: matrix.map(row => [
+      row.timestamp, // Ensure this is a valid timestamp (ISO or Unix ms)
+      row[symbol].sharePrice
+    ]),
+    label: {
+      show: true,
+      position: 'top',
+      textStyle: {
+        color: '#00ff00',
+        fontSize: 10,
+      }
+    }
+  }));
+});
+
+data.then((seriesData) => {
+    const allYValues = seriesData
+    .flatMap(s => s.data)
+    .map(d => d[1])
+    .filter(v => typeof v === 'number' && isFinite(v) && v < 1e6); // Ignore rogue large numbers
+
+  console.log("All Y Values:", allYValues);
+  console.log("Series Data:", seriesData);
+  const option = {
+
+    grid: {
+      top: 15,
+      bottom: 10,
+      left: 10,
+      right: 15,
+      containLabel: true
+    },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'time',
+    },
+    yAxis: {
+      type: 'value',
+      max: Math.max(...allYValues) * 1.01,
+      min: Math.min(...allYValues) * 0.99,
+      splitLine: {
+        show: false
+      },
+      axisLabel: {
+        formatter: (value) => {
+          return value.toFixed(2);
+        }
+      }
+    },
+    series: seriesData
+  };
+
+  chartSharePrice.setOption(option);
+});
+
+  console.log("Matrix:", matrix);
+  console.log("Data:", data);
+
+  const observer = new ResizeObserver(() => {
+    chartTVL?.resize();
+    chart24hFees?.resize();
+    chartSharePrice?.resize();
+    chartRoi?.resize();
+
+  });
+  if (chartDivTVL && chartDivFees && chartDivSharePrice && chartDivRoi) {
+    observer.observe(chartDivTVL);
+    observer.observe(chartDivFees);
+    observer.observe(chartDivSharePrice);
+    observer.observe(chartDivRoi);
+  }
+  });
+
+
+function pltData(data: any, chart: any) {
+  chart.setOption({
+    backgroundColor: '#000000',
+  grid: {
+    top: 15,
+    bottom: 30,
+    left: 10,
+    right: 15,
+    containLabel: true
+  },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      type: 'scroll',
+      orient: 'horizontal',
+      top: 'bottom',
+      textStyle: { fontSize: 10, color: '#00ff00' }
+    },
+
+    xAxis: {
+      type: 'time',
+      axisLine: { lineStyle: { color: '#00ff00' } },
+      splitLine: { lineStyle: { color: '#003300' } },
+      axisLabel: {
+        // formatter: (value: number) => {
+        //   const date = new Date(value);
+        //   return `${date.getMonth() + 1}/${date.getDate()}`;
+        // },
+        textStyle: { color: '#00ff00' }
+      },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: '#00ff00' } },
+      splitLine: { lineStyle: { color: '#003300' } },
+
+    },
+    series: data,
+    // We make sure everything is green
+    textStyle: {
+      color: '#00ff00',
+      fontFamily: 'monospace',
+    },
+    emphasis: {
+      focus: 'series',
+      itemStyle: {
+        color: '#00ff00',
+      },
+      label: {
+        show: true,
+        textStyle: {
+          color: '#00ff00',
+          fontSize: 10,
+        }
+      }
+    },
+    // by default e set the colour of the data to be green
+
+  });
+
+}
+
+
+</script>
+<!-- Responsive chart grid layout -->
+<div class="flex flex-col gap-4 w-full">
+
+  <!-- Top row: Share Price and ROI -->
+  <div class="flex flex-col gap-4 w-full">
+    <Card.Root class="flex-1 min-w-0">
+      <Card.Content>
+        <Card.Title>Derolas Share Price.</Card.Title>
+        <div bind:this={chartDivSharePrice} class="w-full h-[150px]"></div>
+      </Card.Content>
+    </Card.Root>
+
+  <div class="grid text-center grid-cols-1 sm:grid-cols-2 gap-6">
+
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Users class="w-4 h-4" />
+        Current APR
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        {(currentAPR ).toFixed(2)}%
+      </div>
+    </div>
+
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Gift class="w-4 h-4" />
+        Fees 24h
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        ${currentFees24h.toFixed(2)}
+        <!-- {(epochRewards / 1e18).toFixed(2)} OLAS each epoch -->
+      </div>
+    </div>
+
+    <!-- Total Swaps -->
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+        <Flame class="w-4 h-4" />
+        Total Swaps 24h
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+        {currentTrades24h}
+      </div>
+    </div>
+
+    <!-- TVL -->
+
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+      <HandCoins class="w-4 h-4" />
+      Total Value Locked (TVL)
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+      ${currentTVL.toFixed(2)}
+      </div>
+    </div>
+
+
+  </div>
+    <Card.Root class="flex-1 min-w-0">
+      <Card.Content>
+        <Card.Title>Cumulative ROI of Assets in Bundle.</Card.Title>
+        <div bind:this={chartDivRoi} class="w-full h-[200px]"></div>
+      </Card.Content>
+    </Card.Root>
+  </div>
+
+  <!-- Bottom row: TVL and Fees -->
+  <div class="flex flex-col md:flex-row gap-4 w-full">
+    <Card.Root class="flex-1 min-w-0">
+      <Card.Content>
+        <Card.Title>TVL (USD) over previous 30 Days.</Card.Title>
+        <div bind:this={chartDivTVL} class="w-full h-[250px]"></div>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root class="flex-1 min-w-0">
+      <Card.Content>
+        <Card.Title>Fees (USD) over previous 30 Days.</Card.Title>
+        <div bind:this={chartDivFees} class="w-full h-[250px]"></div>
+      </Card.Content>
+    </Card.Root>
+  </div>
+
+</div>
