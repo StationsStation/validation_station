@@ -530,35 +530,35 @@ fn get_app_data_dir(app: AppHandle) -> PathBuf {
     // Create the directory if it doesn't exist
     Some(path).expect("Failed to create app data directory")
 }
+use std::time::Duration;
+use tokio::time::sleep;
 
 #[tauri::command]
-async fn generate_key_file(
-    app: AppHandle,
-    key_name: String,
-    key_file: String,
-) -> Result<String, String> {
-    // docker run --workdir /app/tmp -v (pwd):/app/tmp  -it --entrypoint /app/.venv/bin/autonomy 8ball030/capitalisation_station:latest generate-key ethereum
-
-    // we check if the key exists in appdir
+async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Result<String, String> {
     let app_data_dir = get_app_data_dir(app);
-
     let key_dir = app_data_dir.join("keys");
+    let key_path = key_dir.join(key_name);
+    let full_key_file = key_path.join(key_file);
 
-    let key_path = key_dir.join(key_name.clone());
-    let full_key_file = key_path.join(key_file.clone());
-
+    // Check if the key file already exists
     if full_key_file.exists() {
-        println!("✅ Key file already exists at: {}", full_key_file.display());
-        return Ok(format!("{}", full_key_file.display()));
+        return Ok(full_key_file.display().to_string());
     }
-    // if not, we create the directory
-    fs::create_dir_all(full_key_file.parent().unwrap())
-        .map_err(|e| format!("❌ Failed to create directory for key file: {}", e))?;
 
-    println!("🛠️ Generating key file at: {}", full_key_file.display());
+    // Create the necessary directories
+    if let Err(e) = fs::create_dir_all(full_key_file.parent().unwrap()) {
+        return Err(format!("Failed to create directory: {}", e));
+    }
 
-    // we get the
+    // Ensure the key path exists and is a directory
+    if !key_path.exists() || !key_path.is_dir() {
+        return Err(format!("Invalid key path: {}", key_path.display()));
+    }
+
+    // Initialize Docker client
     let docker = get_docker_client();
+
+    // Configure the container
     let container_config = Config {
         image: Some(IMAGE_NAME),
         host_config: Some(HostConfig {
@@ -570,37 +570,41 @@ async fn generate_key_file(
         working_dir: Some("/app/tmp"),
         ..Default::default()
     };
+
     let create_options = CreateContainerOptions {
-        name: "ethereum",
+        name: format!("autonomy-{}", key_name),
         platform: None,
     };
+
     let container = docker
-        .create_container(Some(create_options), container_config)
+        .create_container(Some(CreateContainerOptions { name: "test-container" , platform: None}), container_config)
         .await
-        .map_err(|e| format!("❌ Error creating container: {}", e))?;
+        .expect("Failed to create container");
+
+    println!("Created container: {}", container.id);
+
+    println!("Starting container with ID: {}", container.id);
     docker
         .start_container(&container.id, None::<StartContainerOptions<String>>)
         .await
-        .map_err(|e| format!("❌ Error starting container: {}", e))?;
-    println!("🚀 Container started with ID: {}", container.id);
-    // wait for the container to finish
+        .map_err(|e| format!("Failed to start container: {}", e))?;
 
-    let mut is_done = false;
-
-    while !is_done {
-        let is_running = container_exists(&container.id).await;
-
-        if !is_running {
-            println!("✅ Container finished running");
-            is_done = true;
-            continue;
-        }
-
-        println!("🛠️ Waiting for container to finish...");
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    // Wait for the container to finish
+    println!("Waiting for container to finish running: {}", container.id);
+    while docker
+        .inspect_container(&container.id, None)
+        .await
+        .map_err(|e| format!("Failed to inspect container: {}", e))?
+        .state
+        .as_ref()
+        .map(|state| state.running.unwrap_or(false))
+        .unwrap_or(false)
+    {
+        sleep(Duration::from_secs(1)).await;
     }
 
-    // ✅ Then remove the container
+    println!("Container finished running: {}", container.id);
+    // Remove the container
     docker
         .remove_container(
             &container.id,
@@ -610,19 +614,15 @@ async fn generate_key_file(
             }),
         )
         .await
-        .map_err(|e| format!("❌ Error removing container: {}", e))?;
+        .map_err(|e| format!("Failed to remove container: {}", e))?;
 
-    println!("✅ Container removed with ID: {}", container.id);
-
-    println!("✅ Container removed with ID: {}", container.id);
-    // check if the file exists
-    if fs::metadata(&full_key_file).is_ok() {
-        Ok(format!("{}", full_key_file.display()))
+    // Check if the key file was created
+    if full_key_file.exists() {
+        println!("✅ Key file generated at: {}", full_key_file.display());
+        Ok(full_key_file.display().to_string())
     } else {
-        Err(format!(
-            "❌ Failed to generate key file at: {}",
-            full_key_file.display()
-        ))
+        println!("❌ Failed to generate key file at: {}", full_key_file.display());
+        Err(format!("Failed to generate key file at: {}", full_key_file.display()))
     }
 }
 
