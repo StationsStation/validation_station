@@ -5,7 +5,6 @@ use bollard::container::{
 
 use bollard::container::RemoveContainerOptions;
 
-use bollard::container::WaitContainerOptions;
 use bollard::image::CreateImageOptions;
 use bollard::models::ContainerSummary;
 use bollard::models::CreateImageInfo;
@@ -558,6 +557,10 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
     // Initialize Docker client
     let docker = get_docker_client();
 
+    if let Err(e) = fetch_docker_image().await {
+        eprintln!("❌ Error pulling image: {}", e);
+        return Err(format!("Failed to pull image {}: {}", IMAGE_NAME, e));
+    }
     // Configure the container
     let container_config = Config {
         image: Some(IMAGE_NAME),
@@ -571,10 +574,6 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
         ..Default::default()
     };
 
-    let create_options = CreateContainerOptions {
-        name: format!("autonomy-{}", key_name),
-        platform: None,
-    };
 
     let container = docker
         .create_container(Some(CreateContainerOptions { name: "test-container" , platform: None}), container_config)
