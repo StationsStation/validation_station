@@ -36,6 +36,35 @@ import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/cont
   let currentFees24h: number = 0;
   let currentTVL: number = 0;
 
+  // struuct for exchanges
+  interface Exchange {
+    name: string;
+  }
+
+  // struct for the chains  
+  interface Chain {
+    name: string;
+    id: number;
+    icon: string;
+  }
+  
+
+  // we now have a hashmap fo derive and balancer
+  // we will use this to get the symbol from the address
+
+
+  let currentChain: Chain = {
+    name: "Base",
+    id: 84531,
+    icon: "https://cryptologos.cc/logos/base-logo.svg?v=022"
+  };
+  let currentExchange: Exchange = {
+    name: "Balancer"
+  };
+  let currentExchangeIcon: string = "https://cryptologos.cc/logos/balancer-logo.svg?v=022";
+
+
+
 
 const darkGreenTheme = {
   backgroundColor: '#000000',
@@ -494,14 +523,14 @@ function pltData(data: any, chart: any) {
 
 </script>
 <!-- Responsive chart grid layout -->
-<div class="flex flex-col gap-4 w-full">
+<div class="flex flex-col gap-2 w-full p-0">
 
   <!-- Top row: Share Price and ROI -->
-  <div class="flex flex-col gap-4 w-full">
-    <Card.Root class="flex-1 min-w-0">
+  <div class="flex flex-col gap-4 w-full p-0">
+    <Card.Root class="flex-1 min-w-0 p-0">
       <Card.Content>
         <Card.Title>Derolas Share Price.</Card.Title>
-        <div bind:this={chartDivSharePrice} class="w-full h-[150px]"></div>
+        <div bind:this={chartDivSharePrice} class="w-full h-[150px]  p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
 
@@ -556,7 +585,7 @@ function pltData(data: any, chart: any) {
     <Card.Root class="flex-1 min-w-0">
       <Card.Content>
         <Card.Title>Cumulative ROI of Assets in Bundle.</Card.Title>
-        <div bind:this={chartDivRoi} class="w-full h-[200px]"></div>
+        <div bind:this={chartDivRoi} class="w-full h-[200px]  p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
   </div>
@@ -566,7 +595,7 @@ function pltData(data: any, chart: any) {
     <Card.Root class="flex-1 min-w-0">
       <Card.Content>
         <Card.Title>TVL (USD) over previous 30 Days.</Card.Title>
-        <div bind:this={chartDivTVL} class="w-full h-[250px]"></div>
+        <div bind:this={chartDivTVL} class="w-full h-[250px] p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
 
