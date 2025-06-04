@@ -727,6 +727,7 @@ async function isTauri(): Promise<boolean> {
 {:else if currentTab === 'metrics'}
   <div transition:fade>
 
+
   <Card.Header class="text-center space-y-4">
     <Card.Title class="text-2xl font-bold tracking-tight">
       Derolas Pool Metrics
@@ -739,12 +740,9 @@ async function isTauri(): Promise<boolean> {
 
     </Card.Header>
     <Card.Content> 
-    <Metrics />
     </Card.Content>
 
-    
-
-
+    <Metrics />
   </div>
 {/if}
 
