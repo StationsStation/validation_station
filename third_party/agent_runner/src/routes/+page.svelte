@@ -5,7 +5,7 @@
   import AgentTable from '$lib/components/AgentTable.svelte';
   import ConfigTable from '$lib/components/ConfigTable.svelte';
   import Nodes from '$lib/components/Nodes.svelte';
-    import { getVersion } from "@tauri-apps/api/app";
+  import { getVersion } from "@tauri-apps/api/app";
 
   let isRunningInTauri: boolean = false;
   async function isTauri(): Promise<boolean> {

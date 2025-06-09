@@ -2,29 +2,16 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Card from "$lib/components/ui/card";
   import * as Input from "$lib/components/ui/input";
-  import { Separator } from "$lib/components/ui/separator";
   import * as Button from "$lib/components/ui/button";
-  import * as ToggleGroup from "$lib/components/ui/toggle-group";
-  import { open, save } from '@tauri-apps/plugin-dialog';
-  import { List, Save } from 'lucide-svelte';
-  import { load } from '@tauri-apps/plugin-store';
+  import { Save } from 'lucide-svelte';
   import * as Select from "$lib/components/ui/select/index.js";
   import type { Selected } from "bits-ui";
-  import { base } from "$app/paths";
-  import * as Table from "$lib/components/ui/table";
-  import { AgentStatus} from '../../types/src_tauri';
 
     import { message } from '@tauri-apps/plugin-dialog';
-    import { Root } from "./ui/toggle";
-    import { disableScrollHandling } from "$app/navigation";
-    import ConfigTable from "./ConfigTable.svelte";
     import { configStore, loadConfigsFromStore, saveConfigsToStore } from "../../stores/configs";
     import { Plus } from "svelte-radix";
-    import type { DERIVE_SUBACCOUNT_ID, DERIVE_WALLET } from "$env/static/private";
 // Each strategy maps to a StrategyVars object directly
 
-
-  const ConfigKey = "configs";
 
 
   const strategies: Strategy[] = [
@@ -36,7 +23,7 @@
 
 
 let config: StrategyVars = {
-  vars: {key: []},
+  vars: {},
   name: "",
   strategy: "",
 };

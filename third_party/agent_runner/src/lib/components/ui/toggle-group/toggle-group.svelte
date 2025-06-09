@@ -6,9 +6,11 @@
 	import { cn } from "$lib/utils.js";
 
 	type T = $$Generic<"single" | "multiple">;
-	type $$Props = ToggleGroupPrimitive.Props<T> & VariantProps<typeof toggleVariants>;
+	type $$Props = Omit<ToggleGroupPrimitive.Props<T>, "class"> & VariantProps<typeof toggleVariants> & {
+		class?: string | null | undefined;
+	};
 
-	let className: string | undefined | null = undefined;
+	let className: string | null | undefined = undefined;
 	export { className as class };
 	export let variant: $$Props["variant"] = "default";
 	export let size: $$Props["size"] = "default";

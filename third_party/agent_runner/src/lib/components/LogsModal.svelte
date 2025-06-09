@@ -7,8 +7,8 @@
   import type { StateResponse } from '$lib/api';
   import { invoke } from '@tauri-apps/api/core';
   import { onMount } from "svelte";
-  import { AgentStatus} from '../../types/src_tauri';
-  import type { Agent } from '../../types/src_tauri';
+  import { AgentStatus} from '$lib/components/types/src_tauri';
+  import type { Agent } from '$lib/components/types/src_tauri';
   import { 
     FileText,
     Download,

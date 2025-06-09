@@ -1,29 +1,7 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition';
-
-  import { serialize, switchNetwork, } from '@wagmi/core';
-  import type Provider from "@walletconnect/ethereum-provider";
-  import { type Address, type ProviderConnectInfo, type Chain, createWalletClient, custom, type Client } from "viem";
   import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
-  import * as Button from "./ui/button";
-  import * as Input from "./ui/input";
-  import * as Progress from "./ui/progress";
-  import * as Seperator from "./ui/separator";
-  import * as Alert from "./ui/alert";
   import * as Card from "$lib/components/ui/card";
-import { getVersion } from '@tauri-apps/api/app';
-    import { onDestroy, onMount } from 'svelte';
-import { walletConnect } from '@wagmi/connectors';
-import Separator from './ui/separator/separator.svelte';
-import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
-import { toast } from "svelte-sonner";
-
-import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
-import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
-    import { addChain } from 'viem/actions';
-    import { Title } from './ui/dialog';
-
-
+   import {  onMount } from 'svelte';
   import * as echarts from 'echarts';
   
   let chartDivRoi: HTMLElement | null | undefined;
@@ -35,6 +13,31 @@ import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/cont
   let currentTrades24h: number = 0;
   let currentFees24h: number = 0;
   let currentTVL: number = 0;
+
+  import dayjs from 'dayjs';
+  // struuct for exchanges
+  interface Exchange {
+    name: string;
+  }
+
+  // struct for the chains  
+  interface Chain {
+    name: string;
+    id: number;
+    icon: string;
+  }
+  
+  let poolId = "0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7";
+
+  // we now have a hashmap fo derive and balancer
+  // we will use this to get the symbol from the address
+
+  let supportedChains: Chain[] = [
+    { name: "Base", id: 8453, icon: "base" },
+    { name: "Derive", id: 1, icon: "ethereum" },
+  ];
+
+
 
 
 const darkGreenTheme = {
@@ -85,7 +88,7 @@ const generateDummyData = () => {
 
   const data = symbols.map(symbol => {
     const prices = [];
-    let price = basePrices[symbol];
+    let price = basePrices[symbol as keyof typeof basePrices];
     for (let i = 0; i < hours; i++) {
       const time = new Date(now.getTime() - (hours - i) * 60 * 60 * 1000).toISOString();
       const change = (Math.random() - 0.5) * 0.02; // ±1% volatility
@@ -103,9 +106,6 @@ const generateDummyData = () => {
   return data;
 };
 
-import dayjs from 'dayjs';
-    import { dataDir } from '@tauri-apps/api/path';
-    import { Label } from 'bits-ui';
 
 const GRAPHQL_ENDPOINT = "https://api-v3.balancer.fi/";
 const POOL_ID = "0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7";
@@ -123,8 +123,8 @@ const ADDRESSES = [
 const SYMBOLS = ["weETH", "WETH", "DAI", "OLAS", "USDC", "DRV", "cbBTC", "LBTC"];
 const ADDRESS_TO_SYMBOL = Object.fromEntries(ADDRESSES.map((a, i) => [a, SYMBOLS[i]]));
 
-const buildPriceQuery = (addresses, chain = "BASE", range = "THIRTY_DAY") => {
-  const fragments = addresses.map((addr, i) => `
+const buildPriceQuery = (addresses: any[], chain = "BASE", range = "THIRTY_DAY") => {
+  const fragments = addresses.map((addr: any, i: any) => `
     token${i}: tokenGetHistoricalPrices(
       addresses: ["${addr}"],
       chain: ${chain},
@@ -176,12 +176,12 @@ export async function generateAlignedPriceMatrix() {
     throw new Error("Data fetch failed");
 
   // Flatten token data
-  const tokenData = {};
+  const tokenData: Record<string, Record<string, number | { totalLiquidity: number; totalShares: number; holdersCount: any; swapsCount: any; fees24h: number; totalSwapFee: number; sharePrice: number; }>> = {};
   for (const [key, value] of Object.entries(tokenJson.data)) {
     const index = parseInt(key.replace("token", ""));
     const address = ADDRESSES[index];
     const symbol = ADDRESS_TO_SYMBOL[address];
-    const entries = value[0]?.prices?.filter(p => p.price != null) || [];
+    const entries = (value as { prices: { price: number; timestamp: number }[] }[])[0]?.prices?.filter(p => p.price != null) || [];
 
     for (const { 
       price, 
@@ -190,7 +190,7 @@ export async function generateAlignedPriceMatrix() {
     } of entries) {
       const ts = dayjs.unix(timestamp).startOf('hour').toISOString();
       if (!tokenData[ts]) tokenData[ts] = {};
-      tokenData[ts][symbol] = parseFloat(price);
+      tokenData[ts][symbol] = parseFloat(price.toString());
     }
   }
 
@@ -249,7 +249,22 @@ let chartSharePrice: echarts.ECharts;
 
   onMount(() => {
     let data
-    const matrix = generateAlignedPriceMatrix();
+    interface DerolasMeta {
+      totalLiquidity: number;
+      totalShares: number;
+      holdersCount: number;
+      swapsCount: number;
+      fees24h: number;
+      totalSwapFee: number;
+      sharePrice: number;
+    }
+    
+    interface MatrixRow {
+      timestamp: string;
+      [key: string]: number | DerolasMeta | string;
+    }
+    
+    const matrix: Promise<MatrixRow[]> = generateAlignedPriceMatrix();
     chartRoi = echarts.init(chartDivRoi, darkGreenTheme,  { renderer: 'canvas' });
     data = matrix.then((matrix) => {
         const tokens = Object.keys(matrix[0]).filter(k => k !== "timestamp" && k !== "_DEROLAS_META");
@@ -263,7 +278,7 @@ let chartSharePrice: echarts.ECharts;
             emphasis: { focus: 'series' },
             data: matrix.map(row => [
               row.timestamp,
-              ((row[symbol] / baseline[symbol]) - 1) * 100
+              (((row[symbol] as number) / (baseline[symbol] as number)) - 1) * 100
             ])
           }));
         });
@@ -289,7 +304,7 @@ let chartSharePrice: echarts.ECharts;
         emphasis: { focus: 'series' },
         data: matrix.map(row => [
           row.timestamp,
-          row[symbol].totalLiquidity
+          typeof row[symbol] === 'object' && 'totalLiquidity' in row[symbol] ? row[symbol].totalLiquidity : 0
         ]),
         label: {
           show: true,
@@ -324,7 +339,7 @@ let chartSharePrice: echarts.ECharts;
         emphasis: { focus: 'series' },
         data: matrix.map(row => [
           row.timestamp,
-          row[symbol].fees24h
+          typeof row[symbol] === 'object' && 'fees24h' in row[symbol] ? row[symbol].fees24h : 0
         ]),
         label: {
           show: true,
@@ -343,7 +358,6 @@ let chartSharePrice: echarts.ECharts;
       pltData(data, chart24hFees);
     });
 
-  
 
   chartSharePrice = echarts.init(chartDivSharePrice, darkGreenTheme,  { renderer: 'canvas' });
 
@@ -358,7 +372,7 @@ data = matrix.then((matrix) => {
     emphasis: { focus: 'series' },
     data: matrix.map(row => [
       row.timestamp, // Ensure this is a valid timestamp (ISO or Unix ms)
-      row[symbol].sharePrice
+      typeof row[symbol] === 'object' && 'sharePrice' in row[symbol] ? row[symbol].sharePrice : 0
     ]),
     label: {
       show: true,
@@ -394,13 +408,13 @@ data.then((seriesData) => {
     },
     yAxis: {
       type: 'value',
-      max: Math.max(...allYValues) * 1.01,
-      min: Math.min(...allYValues) * 0.99,
+      max: Math.max(...allYValues.filter((v): v is number => typeof v === 'number')) * 1.01,
+      min: Math.min(...allYValues.filter((v): v is number => typeof v === 'number')) * 0.99,
       splitLine: {
         show: false
       },
       axisLabel: {
-        formatter: (value) => {
+        formatter: (value: number) => {
           return value.toFixed(2);
         }
       }
@@ -494,14 +508,14 @@ function pltData(data: any, chart: any) {
 
 </script>
 <!-- Responsive chart grid layout -->
-<div class="flex flex-col gap-4 w-full">
+<div class="flex flex-col gap-2 w-full p-0">
 
   <!-- Top row: Share Price and ROI -->
-  <div class="flex flex-col gap-4 w-full">
-    <Card.Root class="flex-1 min-w-0">
+  <div class="flex flex-col gap-4 w-full p-0">
+    <Card.Root class="flex-1 min-w-0 p-0">
       <Card.Content>
         <Card.Title>Derolas Share Price.</Card.Title>
-        <div bind:this={chartDivSharePrice} class="w-full h-[150px]"></div>
+        <div bind:this={chartDivSharePrice} class="w-full h-[150px]  p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
 
@@ -556,7 +570,7 @@ function pltData(data: any, chart: any) {
     <Card.Root class="flex-1 min-w-0">
       <Card.Content>
         <Card.Title>Cumulative ROI of Assets in Bundle.</Card.Title>
-        <div bind:this={chartDivRoi} class="w-full h-[200px]"></div>
+        <div bind:this={chartDivRoi} class="w-full h-[200px]  p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
   </div>
@@ -566,7 +580,7 @@ function pltData(data: any, chart: any) {
     <Card.Root class="flex-1 min-w-0">
       <Card.Content>
         <Card.Title>TVL (USD) over previous 30 Days.</Card.Title>
-        <div bind:this={chartDivTVL} class="w-full h-[250px]"></div>
+        <div bind:this={chartDivTVL} class="w-full h-[250px] p-0 m-0"></div>
       </Card.Content>
     </Card.Root>
 

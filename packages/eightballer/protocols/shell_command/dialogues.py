@@ -1,22 +1,23 @@
-"""
-This module contains the classes required for shell_command dialogue management.
+"""This module contains the classes required for shell_command dialogue management.
 
 - ShellCommandDialogue: The dialogue class maintains state of a dialogue and manages it.
 - ShellCommandDialogues: The dialogues class keeps track of all dialogues.
 """
 
 from abc import ABC
-from typing import Dict, Type, Callable, FrozenSet, cast
+from typing import cast
+from collections.abc import Callable
 
 from aea.common import Address
 from aea.skills.base import Model
 from aea.protocols.base import Message
 from aea.protocols.dialogue.base import Dialogue, Dialogues, DialogueLabel
+
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 
 
 def _role_from_first_message(message: Message, sender: Address) -> Dialogue.Role:
-    """Infer the role of the agent from an incoming/outgoing first message"""
+    """Infer the role of the agent from an incoming/outgoing first message."""
     del sender, message
     return ShellCommandDialogue.Role.AGENT
 
@@ -24,13 +25,13 @@ def _role_from_first_message(message: Message, sender: Address) -> Dialogue.Role
 class ShellCommandDialogue(Dialogue):
     """The shell_command dialogue class maintains state of a dialogue and manages it."""
 
-    INITIAL_PERFORMATIVES: FrozenSet[Message.Performative] = frozenset(
+    INITIAL_PERFORMATIVES: frozenset[Message.Performative] = frozenset(
         {ShellCommandMessage.Performative.EXECUTE_COMMAND}
     )
-    TERMINAL_PERFORMATIVES: FrozenSet[Message.Performative] = frozenset(
+    TERMINAL_PERFORMATIVES: frozenset[Message.Performative] = frozenset(
         {ShellCommandMessage.Performative.COMMAND_RESULT, ShellCommandMessage.Performative.EXECUTION_ERROR}
     )
-    VALID_REPLIES: Dict[Message.Performative, FrozenSet[Message.Performative]] = {
+    VALID_REPLIES: dict[Message.Performative, frozenset[Message.Performative]] = {
         ShellCommandMessage.Performative.COMMAND_RESULT: frozenset(),
         ShellCommandMessage.Performative.EXECUTE_COMMAND: frozenset(
             {ShellCommandMessage.Performative.COMMAND_RESULT, ShellCommandMessage.Performative.EXECUTION_ERROR}
@@ -55,14 +56,14 @@ class ShellCommandDialogue(Dialogue):
         dialogue_label: DialogueLabel,
         self_address: Address,
         role: Dialogue.Role,
-        message_class: Type[ShellCommandMessage] = ShellCommandMessage,
+        message_class: type[ShellCommandMessage] = ShellCommandMessage,
     ) -> None:
-        """
-        Initialize a dialogue.
+        """Initialize a dialogue.
 
 
 
         Args:
+        ----
                dialogue_label:  the identifier of the dialogue
                self_address:  the address of the entity for whom this dialogue is maintained
                role:  the role of the agent this dialogue is maintained for
@@ -86,14 +87,14 @@ class BaseShellCommandDialogues(Dialogues, ABC):
         self,
         self_address: Address,
         role_from_first_message: Callable[[Message, Address], Dialogue.Role] = _role_from_first_message,
-        dialogue_class: Type[ShellCommandDialogue] = ShellCommandDialogue,
+        dialogue_class: type[ShellCommandDialogue] = ShellCommandDialogue,
     ) -> None:
-        """
-        Initialize dialogues.
+        """Initialize dialogues.
 
 
 
         Args:
+        ----
                self_address:  the address of the entity for whom dialogues are maintained
                dialogue_class:  the dialogue class used
                role_from_first_message:  the callable determining role from first message
@@ -102,7 +103,7 @@ class BaseShellCommandDialogues(Dialogues, ABC):
         Dialogues.__init__(
             self,
             self_address=self_address,
-            end_states=cast(FrozenSet[Dialogue.EndState], self.END_STATES),
+            end_states=cast(frozenset[Dialogue.EndState], self.END_STATES),
             message_class=ShellCommandMessage,
             dialogue_class=dialogue_class,
             role_from_first_message=role_from_first_message,

@@ -5,7 +5,7 @@ import Hello from '../lib/components/AgentDeployer.svelte'
 vi.mock('../../stores/configs', () => {
   return {
     configStore: {
-      subscribe: (fn) => {
+      subscribe: (/** @type {(arg0: { exampleConfig: {}; }) => void} */ fn) => {
         fn({
           exampleConfig: {
             /* fill in some mock StrategyVars if needed */

@@ -21,11 +21,11 @@
 import json
 from typing import Any, SupportsFloat, cast
 
-from rich import print
 from aea.skills.base import Handler
 from aea.protocols.base import Message
 
 from packages.eightballer.protocols.http.message import HttpMessage
+from packages.eightballer.protocols.prometheus.message import PrometheusMessage
 from packages.eightballer.skills.rust_broker.dialogues import (
     HttpDialogue,
     HttpDialogues,
@@ -34,7 +34,6 @@ from packages.eightballer.skills.rust_broker.dialogues import (
     ShellCommandDialogue,
     ShellCommandDialogues,
 )
-from packages.eightballer.protocols.prometheus.message import PrometheusMessage
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 
 
@@ -57,7 +56,7 @@ class ShellCommandHandler(Handler):
         if shell_command_dialogue is None:
             self._handle_unidentified_dialogue(message)
             return
-        
+
         if message.exit_code == -1:
             self.context.logger.error(f"Shell command started! {shell_command_dialogue.last_outgoing_message.command}")
 

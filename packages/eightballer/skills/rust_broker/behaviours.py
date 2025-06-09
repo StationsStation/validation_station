@@ -18,18 +18,15 @@
 
 """This package contains a scaffold of a behaviour."""
 
-import json
-from subprocess import Popen
-from pathlib import Path
-import subprocess
 import sys
+import json
 from typing import cast
 
 import psutil
 from aea.skills.behaviours import TickerBehaviour
 
-from packages.eightballer.skills.rust_broker.dialogues import PrometheusDialogues, ShellCommandDialogues
 from packages.eightballer.protocols.prometheus.message import PrometheusMessage
+from packages.eightballer.skills.rust_broker.dialogues import PrometheusDialogues, ShellCommandDialogues
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.connections.prometheus.connection import (
     PUBLIC_ID as PROM_CONNECTION_ID,
@@ -62,10 +59,8 @@ class PrometheusBehaviour(TickerBehaviour):
         self.started = False
         self.error = None
 
-
     def act(self) -> None:
         """Implement the act."""
-
 
         if self.error is not None:
             self.context.logger.error(self.error)
@@ -92,7 +87,6 @@ class PrometheusBehaviour(TickerBehaviour):
             value=cpu_usage,
             labels={"agent_address": self.context.agent_address},
         )
-
 
     def __init__(self, **kwargs):
         """Initialize the behaviour."""
@@ -149,22 +143,22 @@ class PrometheusBehaviour(TickerBehaviour):
         # send message
         self.context.outbox.put_message(message=message)
 
-
     def create_rust_process_message(self) -> None:
         """Create the rust process."""
         shell_dialogues = cast(ShellCommandDialogues, self.context.shell_command_dialogues)
 
         self.context.logger.info("Creating the rust process.")
 
-
         msg, _ = shell_dialogues.create(
             counterparty=str(SHELL_CONNECTION_ID),
             performative=ShellCommandMessage.Performative.EXECUTE_COMMAND,
             command="./broker",
-            args=("--broker", "--port", "8080", "--host", "0.0.0.0"),
+            args=("--broker", "--port", "8080", "--host", "0.0.0.0"),  # noqa: S104
             options={},
-            env_vars=json.dumps({
-                "RUST_LOG": "DEBUG",
-            }).encode("utf-8"),
+            env_vars=json.dumps(
+                {
+                    "RUST_LOG": "DEBUG",
+                }
+            ).encode("utf-8"),
         )
         self.context.outbox.put_message(message=msg)

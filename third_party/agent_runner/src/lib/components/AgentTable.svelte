@@ -1,16 +1,15 @@
 <script lang="ts">
   import * as Table from "$lib/components/ui/table";
   import * as Button from "$lib/components/ui/button";
+  import type { Agent } from '$lib/components/types/src_tauri';
+  import { AgentStatus} from '$lib/components/types/src_tauri';
   import { toast } from "svelte-sonner";
   import { onMount } from "svelte";
-  import { AgentStatus} from '../../types/src_tauri';
-  import type { Agent } from '../../types/src_tauri';
   import { invoke } from '@tauri-apps/api/core';
   import { 
     Pause, 
     Play, 
     StopCircle, 
-    FileX,
     CircleX
   } from 'lucide-svelte';
   import StatsModal from "./StatsModal.svelte";
