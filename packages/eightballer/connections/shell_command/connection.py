@@ -335,7 +335,6 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             env_vars.update(env_vars)
 
         stream_output = True
-        timeout = 0
 
         async def execute_command(command):
             """Execute the command, stream output, and return the logs."""
@@ -378,7 +377,6 @@ class ShellCommandConnection(Connection):
         """
         Initialize a Shell Command connection.
 
-        :param kwargs: keyword arguments
         """
 
         keys = []
@@ -415,7 +413,6 @@ class ShellCommandConnection(Connection):
         """
         Send an envelope.
 
-        :param envelope: the envelope to send.
         """
 
         self._ensure_connected()
@@ -425,9 +422,6 @@ class ShellCommandConnection(Connection):
         """
         Receive an envelope. Blocking.
 
-        :param args: arguments to receive
-        :param kwargs: keyword arguments to receive
-        :return: the envelope received, if present.  # noqa: DAR202
         """
         del args, kwargs
 
