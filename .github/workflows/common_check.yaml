@@ -118,9 +118,9 @@ jobs:
 
       - name: Check
         run: |
-          make lint
+          yarn run check
 
 
       - name: Build
         run: |
-          make build
+          yarn run tauri build
