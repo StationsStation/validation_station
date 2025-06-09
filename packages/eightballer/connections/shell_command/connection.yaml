@@ -8,14 +8,14 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   README.md: bafybeic3vcau3ode3x2sds7abxctpcareyc5i6ctrd4kkwdmbi7cidx2nq
-  __init__.py: bafybeigmaigbnktfaf2b5phoppbgl77gelxibbgoj5jkjcn6kl66p6uviq
-  connection.py: bafybeidbsw5k6ukn3gne6g3qubqgmoc2tza4gfozjebo5xm5djeqdftqfe
-  tests/__init__.py: bafybeibjpw7st4bx7aiw4ohl2xogvp23fv2yzldg6yvcp7l3elga3bwufq
-  tests/test_connection.py: bafybeic2ze7muh3qzz4wc7ta44fx5kbp5anzmrd5w5rpbnayndmdxl57oy
+  __init__.py: bafybeicdpcirur5aiet3ic7ebwyo5hhfqcm3oryzmwvm3yuh4ui46u7ssu
+  connection.py: bafybeiabjtrofcxpvnusdssgnanzuax4rqiis5gybgxqnggojah3pnysvm
+  tests/__init__.py: bafybeigk3mgegxiuo4hnfdirf6c4d7lk4mjbb4zze2vggojip6phf6yr4q
+  tests/test_connection.py: bafybeig3vn7spjf2n5s3n2uheqd4c3r64ebc55xhj3nc46sy4y4qhupbzi
 fingerprint_ignore_patterns: []
 connections: []
 protocols:
-- eightballer/shell_command:0.1.0:bafybeigrpxpad3xxpqpcp4zybjhirqhyysuxrramsynhcve3hh4qkdkryu
+- eightballer/shell_command:0.1.0:bafybeid5sfzow74qyrsn5bvrkte4zmhly7ajqpu453nseqbz4fr2xb5lti
 class_name: ShellCommandConnection
 config:
   foo: bar

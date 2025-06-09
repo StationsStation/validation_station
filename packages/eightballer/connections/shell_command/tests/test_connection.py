@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
 #   Copyright 2024 eightballer
@@ -30,6 +29,7 @@ from aea.mail.base import Message, Envelope
 from aea.identity.base import Identity
 from aea.configurations.base import ConnectionConfig
 from aea.protocols.dialogue.base import Dialogue as BaseDialogue
+
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.dialogues import (
     ShellCommandDialogue,
@@ -42,7 +42,7 @@ from packages.eightballer.connections.shell_command.connection import (
 
 
 def envelope_it(message: ShellCommandMessage):
-    """Envelope the message"""
+    """Envelope the message."""
 
     return Envelope(
         to=message.to,
@@ -55,22 +55,12 @@ class ShellCommandDialogues(BaseShellCommandDialogues):
     """The dialogues class keeps track of all shell_command dialogues."""
 
     def __init__(self, self_address: Address, **kwargs) -> None:
-        """
-        Initialize dialogues.
-
-        :param self_address: self address
-        :param kwargs: keyword arguments
-        """
+        """Initialize dialogues."""
 
         def role_from_first_message(  # pylint: disable=unused-argument
             message: Message, receiver_address: Address
         ) -> BaseDialogue.Role:
-            """Infer the role of the agent from an incoming/outgoing first message
-
-            :param message: an incoming/outgoing first message
-            :param receiver_address: the address of the receiving agent
-            :return: The role of the agent
-            """
+            """Infer the role of the agent from an incoming/outgoing first message."""
             del receiver_address, message
             return ShellCommandDialogue.Role.CLI_SHELL
 
@@ -132,7 +122,7 @@ class TestShellCommandConnection:
         """Test the connect."""
         await self.shell_command_connection.connect()
 
-        msg, dialogue = self._dialogues.create(
+        msg, _dialogue = self._dialogues.create(
             counterparty=str(CONNECTION_PUBLIC_ID),
             performative=ShellCommandMessage.Performative.EXECUTE_COMMAND,
             command="ls",

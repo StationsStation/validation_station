@@ -9,18 +9,18 @@ license: Apache-2.0
 aea_version: '>=1.0.0, <2.0.0'
 fingerprint:
   README.md: bafybeibbcv3xy5rbq2tvmhnn6f7lgffhuep7chjelhgrwzzjqosyypgkdi
-  __init__.py: bafybeigd57uvl34elu4yqexefarpwq5zbz25lwvmvblze2uldisyh56ffe
-  custom_types.py: bafybeifcqkkemiehmhrkr5ievvyll265nlwr2cvidjmjs7ev3ls3lderc4
-  dialogues.py: bafybeidehjnwrcu7rkjn4ozs255vev7hkevaccrbpdow3feyxzvhbmzli4
+  __init__.py: bafybeifa4n4e4rol4zh6quhzn34htawuimywc73xtxbu2sxryvkct7w3wy
+  custom_types.py: bafybeihlhwkyjikmrdmiwb4ddcw3mlnwnq45htgmvpvo42tdlpf3s4wbai
+  dialogues.py: bafybeibuohgce5dbeei5tespolw3d4i6tk23wxvodegd5qjso5cwrpp64u
   message.py: bafybeidjvjvaaeoeyahdvfaja2rw5x2ubea5e2uvdwt32jyrfyzuh6f2su
   protocol_spec.yaml: bafybeid47ho3qp3zzfas65g4b3vnxuglg7lewizwycxvwaineezrizqcke
   serialization.py: bafybeihft5r3i7jgtegucq2wkdqycvh6xedossqcu7uvs46kkkllp7uzeq
   shell_command.proto: bafybeifiexeugxlgfakdorppsryh6g4juzxzprs6hngziwfjnjv6gc4hbi
   shell_command_pb2.py: bafybeicclt6hky37yg3umkyiakylzylfgktqrhaqi7u46vh423sdnz42eu
-  tests/__init__.py: bafybeibo3lsvh4oyfy3l73qy3g2i4zto34vqw66iybnmzohag5domsx7am
+  tests/__init__.py: bafybeiemoqcak3jqqtyohqsgh32gq42pg4erbc5pbv7j42ftxwular5ume
   tests/dummy_data.yaml: bafybeih6fc3n2tryigv6qszptvbgyk6rfloeovllaqy4xwba6slwmcmgsu
-  tests/test_shell_command_dialogues.py: bafybeifcey2gespzuj2robyqem46agxa6x5kvhnmh3z35nvacnh4rlbjz4
-  tests/test_shell_command_messages.py: bafybeidkrkogtl7xvmg3ha3n6u4m3v4p2v56bfzmxl44na4bhd4k2rallm
+  tests/test_shell_command_dialogues.py: bafybeicjmhojyyaesgthsmwcxssfdzyyeu25kcgc43xu3i5gwrwg5qkheq
+  tests/test_shell_command_messages.py: bafybeicbvnehqsxjxzto3sohhkwrvnlhiymwepiwdqqzkwxzoullnzz3ym
 fingerprint_ignore_patterns: []
 dependencies:
   protobuf: {}
