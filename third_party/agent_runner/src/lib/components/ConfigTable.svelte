@@ -2,35 +2,17 @@
   import * as Table from "$lib/components/ui/table";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Input from "$lib/components/ui/input";
-  import { afterUpdate, onDestroy, onMount } from "svelte";
-  import type { StrategyConfig, StrategyVars} from "./AgentBuilder.svelte";
     import * as Button from "$lib/components/ui/button";
-  import { AgentStatus} from '../../types/src_tauri';
-  import type { Agent } from '../../types/src_tauri';
-  import { invoke } from '@tauri-apps/api/core';
   import { 
-    Pause, 
-    Play, 
-    StopCircle, 
-    FileText,
     Delete,
     Edit,
     Copy,
-    Activity,
     Plus,
     Save,
   } from 'lucide-svelte';
-    import { loadConfigsFromStore, configStore, removeConfigFromStore, copyConfig, updateConfig } from "../../stores/configs";
+    import { configStore, removeConfigFromStore, copyConfig, updateConfig } from "../../stores/configs";
     import AgentBuilder from "./AgentBuilder.svelte";
-    import { itemFromKind } from "@tauri-apps/api/menu";
 
-
-  // force refresh of the table when the configList changes
-  // this is a workaround for the fact that svelte doesn't
-  // automatically re-render the table when the configList changes
-  // we need to use afterUpdate to force a re-render
-  // on changes to configList, we need to update the state
-  // of the table
 
   let isCopying = false;
   let configName = "";

@@ -117,6 +117,26 @@ yarl = ">=1.17.0,<2.0"
 speedups = ["Brotli", "aiodns (>=3.2.0)", "brotlicffi"]
 
 [[package]]
+name = "aioprometheus"
+version = "23.12.0"
+description = "A Prometheus Python client library for asyncio-based applications"
+optional = false
+python-versions = ">=3.8.0"
+groups = ["main"]
+files = [
+    {file = "aioprometheus-23.12.0-py3-none-any.whl", hash = "sha256:b1a77259131153ef820b494e76439b278434eaf2a5e25dc0b8bf3d835f455960"},
+]
+
+[package.dependencies]
+orjson = "*"
+quantile-python = ">=1.1"
+
+[package.extras]
+aiohttp = ["aiohttp (>=3.3.2)"]
+quart = ["quart (>=0.15.1)"]
+starlette = ["starlette (>=0.14.2)"]
+
+[[package]]
 name = "aiosignal"
 version = "1.3.2"
 description = "aiosignal: a list of registered asynchronous callbacks"
@@ -5309,6 +5329,17 @@ files = [
 cffi = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
+name = "quantile-python"
+version = "1.1"
+description = "Python Implementation of Graham Cormode and S. Muthukrishnan's Effective Computation of Biased Quantiles over Data Streams in ICDE'05"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "quantile-python-1.1.tar.gz", hash = "sha256:558629e88c497ef3b9b1081349c1ae6a61b53590e317724298ff54c674db7969"},
+]
+
+[[package]]
 name = "regex"
 version = "2024.11.6"
 description = "Alternative regular expression module, to replace re."
@@ -6646,4 +6677,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "f67ada4e268e303364a564c10067698cf492e5fd754b836de4e4e0c5cdcf0188"
+content-hash = "bbd3a20ce62d2215da4da8b02e1404dad5770cc54189307d8acbf5ecd65fc560"

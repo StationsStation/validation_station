@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #                                                                             --
 #
 #   Copyright 2025 eightballer
@@ -21,17 +20,17 @@
 
 # pylint: disable=too-many-statements,too-many-locals,no-member,too-few-public-methods,redefined-builtin
 import os
-from typing import Any, List
 
 import yaml
 from aea.test_tools.test_protocol import BaseProtocolMessagesTestCase
+
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.custom_types import ErrorCode
 
 
 def load_data(custom_type):
     """Load test data."""
-    with open(f"{os.path.dirname(__file__)}/dummy_data.yaml", "r", encoding="utf-8") as f:
+    with open(f"{os.path.dirname(__file__)}/dummy_data.yaml", encoding="utf-8") as f:
         return yaml.safe_load(f)[custom_type]
 
 
@@ -40,7 +39,7 @@ class TestMessageShellCommand(BaseProtocolMessagesTestCase):
 
     MESSAGE_CLASS = ShellCommandMessage
 
-    def build_messages(self) -> List[ShellCommandMessage]:  # type: ignore[override]
+    def build_messages(self) -> list[ShellCommandMessage]:  # type: ignore[override]
         """Build the messages to be used for testing."""
         return [
             ShellCommandMessage(

@@ -32,12 +32,10 @@ from packages.eightballer.protocols.prometheus.dialogues import (
     PrometheusDialogue as BasePrometheusDialogue,
     PrometheusDialogues as BasePrometheusDialogues,
 )
-
 from packages.eightballer.protocols.shell_command.dialogues import (
     ShellCommandDialogue as BaseShellCommandDialogue,
     ShellCommandDialogues as BaseShellCommandDialogues,
 )
-
 
 
 ShellCommandDialogue = BaseShellCommandDialogue
@@ -69,5 +67,6 @@ class PrometheusDialogues(Model, BasePrometheusDialogues):
             self_address=str(self.skill_id),
             role_from_first_message=role_from_first_message,
         )
+
 
 ShellCommandDialogues = BaseShellCommandDialogues

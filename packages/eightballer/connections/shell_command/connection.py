@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 #
 #   Copyright 2024 eightballer
@@ -20,22 +19,23 @@
 # pylint: disable=too-many-instance-attributes, W0511, w0613
 """Shell Command connection and channel."""
 
-import sys
-import asyncio
-import json
-import logging
 import os
+import sys
+import json
+import asyncio
+import logging
 import subprocess
 from abc import abstractmethod
-import sys
-from typing import Any, Set, Dict, Callable, Optional, cast
+from typing import Any, cast
 from asyncio.events import AbstractEventLoop
+from collections.abc import Callable
 
 from aea.common import Address
 from aea.mail.base import Message, Envelope
 from aea.connections.base import Connection, ConnectionStates
 from aea.configurations.base import PublicId
 from aea.protocols.dialogue.base import Dialogue
+
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.dialogues import (
     ShellCommandDialogue,
@@ -43,7 +43,7 @@ from packages.eightballer.protocols.shell_command.dialogues import (
 )
 
 
-sys.stdout.reconfigure(line_buffering=True) 
+sys.stdout.reconfigure(line_buffering=True)
 CONNECTION_ID = PublicId.from_str("eightballer/shell_command:0.1.0")
 
 
@@ -54,22 +54,12 @@ class ShellCommandDialogues(BaseShellCommandDialogues):
     """The dialogues class keeps track of all shell_command dialogues."""
 
     def __init__(self, self_address: Address, **kwargs) -> None:
-        """
-        Initialize dialogues.
-
-        :param self_address: self address
-        :param kwargs: keyword arguments
-        """
+        """Initialize dialogues."""
 
         def role_from_first_message(  # pylint: disable=unused-argument
             message: Message, receiver_address: Address
         ) -> Dialogue.Role:
-            """Infer the role of the agent from an incoming/outgoing first message
-
-            :param message: an incoming/outgoing first message
-            :param receiver_address: the address of the receiving agent
-            :return: The role of the agent
-            """
+            """Infer the role of the agent from an incoming/outgoing first message."""
             assert message, receiver_address
             return ShellCommandDialogue.Role.AGENT
 
@@ -90,13 +80,7 @@ class BaseAsyncChannel:
         connection_id: PublicId,
         message_type: Message,
     ):
-        """
-        Initialize the BaseAsyncChannel channel.
-
-        :param agent_address: the address of the agent.
-        :param connection_id: the id of the connection.
-        :param message_type: the associated message type.
-        """
+        """Initialize the BaseAsyncChannel channel."""
 
         self.agent_address = agent_address
         self.connection_id = connection_id
@@ -104,9 +88,9 @@ class BaseAsyncChannel:
 
         self.is_stopped = True
         self._connection = None
-        self._tasks: Set[asyncio.Task] = set()
-        self._in_queue: Optional[asyncio.Queue] = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._tasks: set[asyncio.Task] = set()
+        self._in_queue: asyncio.Queue | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
         self.logger = _default_logger
         self.working_directory = "."
 
@@ -114,7 +98,7 @@ class BaseAsyncChannel:
     @abstractmethod
     def performative_handlers(
         self,
-    ) -> Dict[Message.Performative, Callable[[Message, Dialogue], Message]]:
+    ) -> dict[Message.Performative, Callable[[Message, Dialogue], Message]]:
         """Performative to message handler mapping."""
 
     @abstractmethod
@@ -126,21 +110,21 @@ class BaseAsyncChannel:
         """Disconnect channel."""
 
     async def send(self, envelope: Envelope) -> None:
-        """
-        Send an envelope with a protocol message.
+        """Send an envelope with a protocol message.
 
         It sends the envelope, waits for and receives the result.
         The result is translated into a response envelope.
         Finally, the response envelope is sent to the in-queue.
 
-        :param query_envelope: The envelope containing a protocol message.
         """
 
         if not self._loop:
-            raise ConnectionError("{self.__class__.__name__} not connected, call connect first!")
+            msg = "{self.__class__.__name__} not connected, call connect first!"
+            raise ConnectionError(msg)
 
         if not isinstance(envelope.message, self.message_type):
-            raise TypeError(f"Message not of type {self.message_type}")
+            msg = f"Message not of type {self.message_type}"
+            raise TypeError(msg)
 
         message = envelope.message
 
@@ -151,7 +135,7 @@ class BaseAsyncChannel:
 
         handler = self.performative_handlers[message.performative]
 
-        dialogue = cast(Dialogue, self._dialogues.update(message))  # noqa
+        dialogue = cast(Dialogue, self._dialogues.update(message))
         if dialogue is None:
             self.logger.warning(f"Could not create dialogue for message={message}")
             return
@@ -168,14 +152,13 @@ class BaseAsyncChannel:
 
         await self._in_queue.put(response_envelope)
 
-    async def get_message(self) -> Optional[Envelope]:
+    async def get_message(self) -> Envelope | None:
         """Check the in-queue for envelopes."""
 
         if self.is_stopped:
             return None
         try:
-            envelope = self._in_queue.get_nowait()
-            return envelope
+            return self._in_queue.get_nowait()
         except asyncio.QueueEmpty:
             return None
 
@@ -190,7 +173,7 @@ class BaseAsyncChannel:
         for task in list(self._tasks):
             try:
                 await task
-            except KeyboardInterrupt:  # noqa
+            except KeyboardInterrupt:
                 raise
             except BaseException:  # noqa
                 pass  # nosec
@@ -202,7 +185,6 @@ class BaseAsyncChannel:
             process.kill()
             process.wait()
             self._running_processes.remove(process)
-            
 
 
 class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-instance-attributes
@@ -214,28 +196,19 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
         connection_id: PublicId,
         **kwargs,
     ):
-        """
-        Initialize the Shell Command channel.
-
-        :param agent_address: the address of the agent.
-        :param connection_id: the id of the connection.
-        """
+        """Initialize the Shell Command channel."""
 
         super().__init__(agent_address, connection_id, message_type=ShellCommandMessage)
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        self._running_processes: Set[subprocess.Popen] = set()
+        self._running_processes: set[subprocess.Popen] = set()
         self._dialogues = ShellCommandDialogues(str(ShellCommandConnection.connection_id))
         self.logger.debug("Initialised the Shell Command channel")
 
     async def connect(self, loop: AbstractEventLoop) -> None:
-        """
-        Connect channel using loop.
-
-        :param loop: asyncio event loop to use
-        """
+        """Connect channel using loop."""
 
         if self.is_stopped:
             self._loop = loop
@@ -246,7 +219,8 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             except Exception as error:  # pragma: nocover # pylint: disable=broad-except
                 self.is_stopped = True
                 self._in_queue = None
-                raise ConnectionError(f"Failed to start Shell Command: {error}") from error
+                msg = f"Failed to start Shell Command: {error}"
+                raise ConnectionError(msg) from error
 
     async def disconnect(self) -> None:
         """Disconnect channel."""
@@ -261,7 +235,7 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
     @property
     def performative_handlers(
         self,
-    ) -> Dict[
+    ) -> dict[
         ShellCommandMessage.Performative,
         Callable[[ShellCommandMessage, ShellCommandDialogue], ShellCommandMessage],
     ]:
@@ -270,9 +244,11 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             ShellCommandMessage.Performative.EXECUTE_COMMAND: self.execute_command,
         }
 
-    
-
-    async def _stream_output(self, process, stream_output=True, fmt=""):
+    async def _stream_output(
+        self,
+        process,
+        stream_output=True,
+    ):
         """Stream both stdout and stderr in real-time with optimized async approach."""
 
         stdout_lines = []
@@ -288,20 +264,20 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
                     output = output.decode("utf-8").strip()  # Manually decode bytes to string
                     stdout_lines.append(output)
                     if stream_output:
-                        print(fmt + output)
+                        pass
                     sys.stdout.flush()
 
         # Function to read stderr asynchronously
         async def read_stderr():
             while True:
                 error = await process.stderr.readline()
-                if error == b'' and process.returncode is not None:  # If the output is empty, the process is done
+                if error == b"" and process.returncode is not None:  # If the output is empty, the process is done
                     break
                 if error:
                     error = error.decode("utf-8").strip()  # Manually decode bytes to string
                     stderr_lines.append(error)
                     if stream_output:
-                        print(fmt + error)
+                        pass
                     sys.stderr.flush()
 
         # Start both tasks concurrently
@@ -309,19 +285,19 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
 
         return process, stdout_lines, stderr_lines
 
-
     async def _run_process(self, command, env_vars=None):
         """Run the command and return the process."""
         return await asyncio.create_subprocess_exec(
             *command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            env=env_vars if env_vars else None,
-
+            env=env_vars or None,
         )
 
-    async def execute_command(self, message: ShellCommandMessage, dialogue: ShellCommandDialogue) -> ShellCommandMessage:
-        """Handle ShellCommandMessage with EXECUTE_COMMAND Perfomative"""
+    async def execute_command(
+        self, message: ShellCommandMessage, dialogue: ShellCommandDialogue
+    ) -> ShellCommandMessage:
+        """Handle ShellCommandMessage with EXECUTE_COMMAND Perfomative."""
 
         command = message.command
         options = message.options
@@ -335,7 +311,6 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             env_vars.update(env_vars)
 
         stream_output = True
-        timeout = 0
 
         async def execute_command(command):
             """Execute the command, stream output, and return the logs."""
@@ -343,7 +318,7 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             process = await self._run_process(command, env_vars=env_vars)
             self.logger.info("Process started: %s", process)
             self._running_processes.add(process)
-            future = self._stream_output(process, fmt="", stream_output=stream_output)
+            future = self._stream_output(process, stream_output=stream_output)
             self._tasks.add(asyncio.ensure_future(future))
             proc, stdout_lines, stderr_lines = process, [], []
             return proc, stdout_lines, stderr_lines
@@ -354,8 +329,12 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             self.logger.info(f"Command started successfully: {command_list}")
             return dialogue.reply(
                 performative=ShellCommandMessage.Performative.COMMAND_RESULT,
-                stderr=stderr_lines,
-                stdout=stdout_lines,
+                stdout="".join(
+                    stdout_lines,
+                ),
+                stderr="".join(
+                    stderr_lines,
+                ),
                 exit_code=-1,
             )
 
@@ -365,7 +344,7 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             error=error,
             stderr=stderr_lines,
             stdout=stdout_lines,
-            exit_code=proc.returncode
+            exit_code=proc.returncode,
         )
 
 
@@ -375,11 +354,7 @@ class ShellCommandConnection(Connection):
     connection_id = CONNECTION_ID
 
     def __init__(self, **kwargs: Any) -> None:
-        """
-        Initialize a Shell Command connection.
-
-        :param kwargs: keyword arguments
-        """
+        """Initialize a Shell Command connection."""
 
         keys = []
         config = kwargs["configuration"].config
@@ -405,6 +380,12 @@ class ShellCommandConnection(Connection):
     async def disconnect(self) -> None:
         """Disconnect from a Shell Command."""
 
+        # We terminate all running processes and cancel all tasks.
+        await self.channel._cancel_processes()  # noqa: SLF001
+        await self.channel._cancel_tasks()  # noqa: SLF001
+        self.channel._running_processes.clear()  # noqa: SLF001
+        self.channel._tasks.clear()  # noqa: SLF001
+
         if self.is_disconnected:
             return  # pragma: nocover
         self.state = ConnectionStates.disconnecting
@@ -412,29 +393,18 @@ class ShellCommandConnection(Connection):
         self.state = ConnectionStates.disconnected
 
     async def send(self, envelope: Envelope) -> None:
-        """
-        Send an envelope.
-
-        :param envelope: the envelope to send.
-        """
+        """Send an envelope."""
 
         self._ensure_connected()
         return await self.channel.send(envelope)
 
-    async def receive(self, *args: Any, **kwargs: Any) -> Optional[Envelope]:
-        """
-        Receive an envelope. Blocking.
-
-        :param args: arguments to receive
-        :param kwargs: keyword arguments to receive
-        :return: the envelope received, if present.  # noqa: DAR202
-        """
+    async def receive(self, *args: Any, **kwargs: Any) -> Envelope | None:
+        """Receive an envelope. Blocking."""
         del args, kwargs
 
         self._ensure_connected()
         try:
-            result = await self.channel.get_message()
-            return result
+            return await self.channel.get_message()
         except Exception as e:  # noqa
             self.logger.info(f"Exception on receive {e}")
             return None

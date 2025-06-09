@@ -28,11 +28,6 @@ import { createClient, createWalletClient } from 'viem'
 import { toast } from 'svelte-sonner';
 const derolasAbi = DerolasStakingJson;
 
-
-let contractIntervalId: number;
-let animatedPercentIntervalId: number;
-
-
 let percentCompleted: number = 0;
 
 const configWrite = createConfig({
@@ -48,33 +43,18 @@ const configWrite = createConfig({
 let DEPLOYED_CONTRACT_ADDRESS: `0x${string}` = derolasAbi.address as `0x${string}`;
 let OLAS_TOKEN_ADDRESS: `0x${string}` = "0x54330d28ca3357f294334bdc454a032e7f353416";
 
-  let deployedContracts: Record<number, { DerolasStaking: 
-    { name: string; address: string; abi: Abi }, IncentiveToken: { name: string; address: string; abi: Abi } }> = {
-      31337: {
-        DerolasStaking: {
-          name: "DerolasStaking",
-          address: DEPLOYED_CONTRACT_ADDRESS,
-          abi: derolasAbi
-        },
-        IncentiveToken: {
-          name: "IncentiveToken",
-          address: OLAS_TOKEN_ADDRESS,
-          abi: IncentiveTokenAbi
-        }
-      }
-    };
 
 
 async function topUpOlas(topUpAmount: number) {
   console.log('Topping up OLAS...');
   // Logic to top up OLAS
   console.log('Epoch Rewards:', topUpAmount);
-  const _accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  const _accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
   const _account = _accounts[0];
   console.log('Account:', _account);
   const walletClient = createWalletClient({
     chain: base,
-    transport: custom(window.ethereum)
+    transport: custom((window as any).ethereum)
   });
   const accounts = await walletClient.getAddresses();
   let abi = derolasAbi.abi;

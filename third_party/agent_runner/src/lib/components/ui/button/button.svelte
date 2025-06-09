@@ -15,7 +15,10 @@
 
 <ButtonPrimitive.Root
 	{builders}
-	class={cn(buttonVariants({ variant, size, className }))}
+	class={
+	cn(
+		// @ts-expect-error ignore optional className typing
+		buttonVariants({ variant, size, className }))}  
 	type="button"
 	{...$$restProps}
 	on:click

@@ -1,4 +1,3 @@
-# noqa: INP001
 """Test the prometheus skill."""
 
 from pathlib import Path
