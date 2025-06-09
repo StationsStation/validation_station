@@ -9,7 +9,7 @@ fingerprint:
   tests/__init__.py: bafybeiausykbndof27hjfgwqg6nnmk7zw7lyytwzekih3gszwdypbtxjka
   tests/test_service.py: bafybeicplirjoql5q3l5zjl5xrgamnoxuj3year7u2vrtfnzzllzeyutuy
 fingerprint_ignore_patterns: []
-agent: eightballer/validation_station_broker:0.1.0:bafybeicv6gowk64ptsw3hqjvm2dotgjthqv6s3honulqevfxh5bdpn6ixi
+agent: eightballer/validation_station_broker:0.1.0:bafybeigmmvique6ogmyjxfbkgbergv33uidzzpqrgfkblarxfiy2xcuzci
 number_of_agents: 4
 deployment:
   agent:

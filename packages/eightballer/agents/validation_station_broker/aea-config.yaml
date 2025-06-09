@@ -24,7 +24,7 @@ protocols:
 - open_aea/signing:1.0.0:bafybeig2d36zxy65vd7fwhs7scotuktydcarm74aprmrb5nioiymr3yixm
 skills:
 - eightballer/metrics:0.1.0:bafybeiams7g4pynaklci2zatx2ick62smkkcli4p3zuimrtv334plbhi7e
-- eightballer/rust_broker:0.1.0:bafybeicbgtfogqk374uqzauyldyuzugq3wepypilmhidaw6r5xd3nrdhbm
+- eightballer/rust_broker:0.1.0:bafybeigzgh5d6xdzvdfqhuc35occhezfatw7eqvd4znrakke34gta42z7m
 customs: []
 default_ledger: ethereum
 required_ledgers:

@@ -2,10 +2,10 @@
     "dev": {
         "protocol/eightballer/shell_command/0.1.0": "bafybeid5sfzow74qyrsn5bvrkte4zmhly7ajqpu453nseqbz4fr2xb5lti",
         "connection/eightballer/shell_command/0.1.0": "bafybeih6zxtaemmax4jcv4isoraotul3thjflyf4jxyxq36de33y5fdatm",
-        "skill/eightballer/rust_broker/0.1.0": "bafybeicbgtfogqk374uqzauyldyuzugq3wepypilmhidaw6r5xd3nrdhbm",
-        "agent/eightballer/validation_station_broker/0.1.0": "bafybeicv6gowk64ptsw3hqjvm2dotgjthqv6s3honulqevfxh5bdpn6ixi",
-        "service/eightballer/validation_station_broker/0.1.0": "bafybeictuxoa6wasuziastthywqch5eakshmswaq4zj6c7rb2jztejfnve",
-        "service/validation_station/broker/0.1.0": "bafybeie2qiigcgp7ji7q5uzryyeis43xetxbcqvwvusl6jf2j2uh6kvule"
+        "skill/eightballer/rust_broker/0.1.0": "bafybeigzgh5d6xdzvdfqhuc35occhezfatw7eqvd4znrakke34gta42z7m",
+        "agent/eightballer/validation_station_broker/0.1.0": "bafybeigmmvique6ogmyjxfbkgbergv33uidzzpqrgfkblarxfiy2xcuzci",
+        "service/eightballer/validation_station_broker/0.1.0": "bafybeihdl5unqprtrrcr7xjyo3xot3jxujv4eyzotwn6632oxyipkhw23q",
+        "service/validation_station/broker/0.1.0": "bafybeibbeasvqxf4swcthfp23rawd7eprttwhyutocs23e532gkvbak67a"
     },
     "third_party": {
         "custom/asiyaasha/simple_svelte/0.1.0": "bafybeidqs4wi5znhippj4qfq7eb35k3pypo34zwznkaqp6ctwxfiyt34iy",
