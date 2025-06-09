@@ -153,6 +153,7 @@ jobs:
             --platform=${{ matrix.docker_platform }} \
             --tag $IMAGE_NAME:${RELEASE_VERSION}-${{ matrix.tag_suffix }}  \
             --tag $IMAGE_NAME:latest-${{ matrix.tag_suffix }} \
+            --tag $IMAGE_NAME:latest \
             --push \
             .
         shell: bash
