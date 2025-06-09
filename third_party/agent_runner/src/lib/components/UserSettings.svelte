@@ -19,7 +19,6 @@
   loadKeysFromStore();
 
   import * as Table from "$lib/components/ui/table";
-    import { path } from "@tauri-apps/api";
 
   async function handleGenerate() {
     console.log("Generating new key...");

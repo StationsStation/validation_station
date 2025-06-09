@@ -21,6 +21,6 @@ export interface Agent {
 
 export interface UserConfiguration {
 	privateKeyPath: string;
-	environmentPath: string;
+	environmentVars: Record<string, string>;
 }
 

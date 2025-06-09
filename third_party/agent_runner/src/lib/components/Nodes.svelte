@@ -1,33 +1,27 @@
-<script lang="ts">
-  import { fade } from 'svelte/transition';
 
-  import { serialize, switchNetwork, } from '@wagmi/core';
-  import type Provider from "@walletconnect/ethereum-provider";
-  import { type Address, type ProviderConnectInfo, type Chain, createWalletClient, custom, type Client } from "viem";
-  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
+
+<script lang="ts">
+  import { onMount } from 'svelte'; 
+
+  // Extend the Window interface to include the ethereum property
+  import { fade } from 'svelte/transition';
+  import { type Address, type Chain, createWalletClient, custom, type Client } from "viem";
+  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Timer, BrainCircuit, Flame, } from "lucide-svelte";
   import * as Button from "./ui/button";
   import * as Input from "./ui/input";
   import * as Progress from "./ui/progress";
-  import * as Seperator from "./ui/separator";
   import * as Alert from "./ui/alert";
   import * as Card from "$lib/components/ui/card";
 import { getVersion } from '@tauri-apps/api/app';
-    import { onDestroy, onMount } from 'svelte';
-import { walletConnect } from '@wagmi/connectors';
 import Separator from './ui/separator/separator.svelte';
-import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
-import { toast } from "svelte-sonner";
-
-import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
+import { base} from 'viem/chains'; // or wherever your chain imports come from
 import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
     import { addChain } from 'viem/actions';
-    import { Title } from './ui/dialog';
     import Metrics from './Metrics.svelte';
+    import BalMetrics from './ExchangeMetrics.svelte';
+    
 
 let PUBLIC_WALLETCONNECT_ID = "189298bf7ea32b9f16f1369599ad0ad4"
-
-
-
 
 
 
@@ -47,7 +41,6 @@ let account: Address = "0x0000000000000000000000000000000000000000";
 let animatedPercent = 0;
 let userCurrentShare = 0;
 let canPlayGame = false;
-let signerAddress = "";
 let userClaimable = 0;
 
 let userContribution = 0;
@@ -85,12 +78,12 @@ let walletClient: any = null;
 
 async function setUpInjectedWallet(): Promise<any> {
   // Check if browser wallet is available
-  if (!window.ethereum) {
+  if (!(window as any).ethereum) {
     throw new Error('No injected wallet found. Please install MetaMask or another wallet extension.');
   }
   
   // Request accounts access
-  const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  const accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
   
   if (!accounts || accounts.length === 0) {
     throw new Error('No accounts found or user rejected the connection');
@@ -99,13 +92,13 @@ async function setUpInjectedWallet(): Promise<any> {
   console.log("Accounts found:", accounts);
   walletClient = createWalletClient({
     chain: base,
-    transport: custom(window.ethereum),
+    transport: custom((window as any).ethereum),
   });
   
   return walletClient;
 }
 
-async function setUpWc(): Client{
+async function setUpWc(): Promise<Client>{
 // let result = await setUpWalletConnectBrowser();
 let result = await setUpInjectedWallet();
 walletClient = result;
@@ -190,7 +183,7 @@ function disconnectWallet() {
 let pendingChainId: number | null = null;
 let connectChainName = "";
 
-
+let poolId = "0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7";
 /**
  * Switch the connected wallet to a different chain
  * @param newChain - The chain to switch to
@@ -208,8 +201,8 @@ async function handleSwitch(newChain: Chain) {
     
     // Using viem's wallet client approach to switch chains
     // Method 1: For MetaMask and most injected wallets
-    if (walletClient.transport.type === 'custom' && window.ethereum) {
-      await window.ethereum.request({
+    if (walletClient.transport.type === 'custom' && (window as any).ethereum) {
+      await (window as any).ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${newChain.id.toString(16)}` }],
       });
@@ -243,7 +236,6 @@ async function handleSwitch(newChain: Chain) {
         chain: newChain, // Add the chain property
         id: newChain.id,
         name: newChain.name,
-        network: newChain.network,
         nativeCurrency: newChain.nativeCurrency,
         rpcUrls: newChain.rpcUrls,
         blockExplorers: newChain.blockExplorers,
@@ -262,13 +254,13 @@ async function connect() {
 		try {
         console.log('Connecting to WalletConnect...');
         let w = await setUpWc();
+        chainId = walletClient.chain.id;
+
         console.log('WalletConnect initialized:', w);
-        const accounts = await w.getAddresses();
+        const accounts = await w.request({ method: 'eth_accounts' });
         account = accounts[0];
         connected = true;
         // w.switchChain({ id: base.id });
-        chainId = await w.getChainId();
-
         if (!account) {
           console.error("No account found. Please connect your wallet.");
           account = "0x0000000000000000000000000000000000000";
@@ -417,7 +409,8 @@ async function isTauri(): Promise<boolean> {
 
 {/if}
 
-<Card.Root class="space-y-8 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono">
+ <Card.Root class="mb-10 p-6 shadow-lg border border-green-500 bg-black text-green-400 font-mono space-y-8">
+
   <!-- Header -->
 {#if currentTab === 'contribute'}
   <Card.Header class="text-center space-y-4">
@@ -727,12 +720,12 @@ async function isTauri(): Promise<boolean> {
 {:else if currentTab === 'metrics'}
   <div transition:fade>
 
-  <Card.Header class="text-center space-y-4">
+  <Card.Header class="text-center">
     <Card.Title class="text-2xl font-bold tracking-tight">
       Derolas Pool Metrics
     </Card.Title>
     <Card.Description class="text-green-500 text-sm">
-        The <a href="https://balancer.fi/pools/base/v3/0x7b4c560f33a71a9f7a500af3c4c65b46fbbafdb7" target="_blank" rel="noopener noreferrer" class="underline hover:text-green-400">
+        The <a href="https://balancer.fi/pools/base/v3/{poolId}" target="_blank" rel="noopener noreferrer" class="underline hover:text-green-400">
           Balancer pool
         </a> is the heart of the Derolas ecosystem, providing liquidity and enabling on-chain transactions and capturing value for OLAS holders.
       </Card.Description>
@@ -742,6 +735,17 @@ async function isTauri(): Promise<boolean> {
     <Metrics />
     </Card.Content>
 
+  <Card.Header class="text-center">
+    <Card.Title class="text-2xl font-bold tracking-tight">
+      Derolas Exchange Share Metrics
+    </Card.Title>
+    <Card.Description class="text-green-500 text-sm">
+      The Derolas Exchange Share metrics provides insights into the % share of the Derolas pool as related to the total share of balancer volume.
+      </Card.Description>
+    </Card.Header>
+    <Card.Content> 
+    <BalMetrics />
+    </Card.Content>
     
 
 

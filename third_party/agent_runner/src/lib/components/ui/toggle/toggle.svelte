@@ -18,7 +18,9 @@
 
 <TogglePrimitive.Root
 	bind:pressed
-	class={cn(toggleVariants({ variant, size, className }))}
+	class={cn(
+		// @ts-expect-error ignore optional className typing
+		toggleVariants({ variant, size, className }))}
 	{...$$restProps}
 	on:click
 	on:keydown

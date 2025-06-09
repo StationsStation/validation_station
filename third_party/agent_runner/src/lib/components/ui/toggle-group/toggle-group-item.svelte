@@ -4,9 +4,11 @@
 	import { cn } from "$lib/utils.js";
 	import { toggleVariants } from "$lib/components/ui/toggle/index.js";
 
-	type $$Props = ToggleGroupPrimitive.ItemProps & ToggleVariants;
+	type $$Props = Omit<ToggleGroupPrimitive.ItemProps, "class"> & ToggleVariants & {
+		class?: string | null | undefined;
+	};
 
-	let className: string | undefined | null = undefined;
+	let className: string | null | undefined = undefined;
 
 	export { className as class };
 	export let variant: $$Props["variant"] = "default";
