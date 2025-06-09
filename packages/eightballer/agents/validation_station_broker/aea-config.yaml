@@ -14,7 +14,7 @@ connections:
 - eightballer/http_client:0.1.0:bafybeiaz5auftwxpt4czrmeeesggqlkc2kosmetq6adrebeu6g7bkhqc2u
 - eightballer/http_server:0.1.0:bafybeidrvllrr23mc6bvjxn6v3hny6oiwhfgi72n2b7w6ck5luousjfbbq
 - eightballer/prometheus:0.1.1:bafybeicy4ck2wvauo2vh6ji64xrzlgezh27powi6ztokr4yujtf3cft6wi
-- eightballer/shell_command:0.1.0:bafybeih6zxtaemmax4jcv4isoraotul3thjflyf4jxyxq36de33y5fdatm
+- eightballer/shell_command:0.1.0:bafybeif64di77v5pog7bx2qv63ahjsttkuebldbogrruwbo7r2jnvnqvtm
 contracts: []
 protocols:
 - eightballer/default:0.1.0:bafybeicsdb3bue2xoopc6lue7njtyt22nehrnkevmkuk2i6ac65w722vwy
@@ -24,7 +24,7 @@ protocols:
 - open_aea/signing:1.0.0:bafybeig2d36zxy65vd7fwhs7scotuktydcarm74aprmrb5nioiymr3yixm
 skills:
 - eightballer/metrics:0.1.0:bafybeiams7g4pynaklci2zatx2ick62smkkcli4p3zuimrtv334plbhi7e
-- eightballer/rust_broker:0.1.0:bafybeigzgh5d6xdzvdfqhuc35occhezfatw7eqvd4znrakke34gta42z7m
+- eightballer/rust_broker:0.1.0:bafybeich7igfxfeyfurjxovkq3llrthv6ujz3c3khn4mprnaaiycmvf3gu
 customs: []
 default_ledger: ethereum
 required_ledgers:

@@ -318,7 +318,7 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             process = await self._run_process(command, env_vars=env_vars)
             self.logger.info("Process started: %s", process)
             self._running_processes.add(process)
-            future = self._stream_output(process, fmt="", stream_output=stream_output)
+            future = self._stream_output(process, stream_output=stream_output)
             self._tasks.add(asyncio.ensure_future(future))
             proc, stdout_lines, stderr_lines = process, [], []
             return proc, stdout_lines, stderr_lines
@@ -329,8 +329,12 @@ class ShellCommandAsyncChannel(BaseAsyncChannel):  # pylint: disable=too-many-in
             self.logger.info(f"Command started successfully: {command_list}")
             return dialogue.reply(
                 performative=ShellCommandMessage.Performative.COMMAND_RESULT,
-                stderr=stderr_lines,
-                stdout=stdout_lines,
+                stdout="".join(
+                    stdout_lines,
+                ),
+                stderr="".join(
+                    stderr_lines,
+                ),
                 exit_code=-1,
             )
 
@@ -375,6 +379,12 @@ class ShellCommandConnection(Connection):
 
     async def disconnect(self) -> None:
         """Disconnect from a Shell Command."""
+
+        # We terminate all running processes and cancel all tasks.
+        await self.channel._cancel_processes()  # noqa: SLF001
+        await self.channel._cancel_tasks()  # noqa: SLF001
+        self.channel._running_processes.clear()  # noqa: SLF001
+        self.channel._tasks.clear()  # noqa: SLF001
 
         if self.is_disconnected:
             return  # pragma: nocover

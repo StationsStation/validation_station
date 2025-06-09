@@ -16,7 +16,7 @@ fingerprint:
 fingerprint_ignore_patterns: []
 connections:
 - eightballer/prometheus:0.1.1:bafybeicy4ck2wvauo2vh6ji64xrzlgezh27powi6ztokr4yujtf3cft6wi
-- eightballer/shell_command:0.1.0:bafybeih6zxtaemmax4jcv4isoraotul3thjflyf4jxyxq36de33y5fdatm
+- eightballer/shell_command:0.1.0:bafybeif64di77v5pog7bx2qv63ahjsttkuebldbogrruwbo7r2jnvnqvtm
 contracts: []
 protocols:
 - eightballer/http:0.1.0:bafybeid75xhq7hfdt7sgj7yrn44yj57xrgxscaw34ir46tndfzvodioxme

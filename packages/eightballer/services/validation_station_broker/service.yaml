@@ -4,9 +4,12 @@ version: 0.1.0
 description: A new service, scaffolded by the Adev cli from eightballer/validation_station_broker:0.1.0
 aea_version: '>=1.0.0, <2.0.0'
 license: apache-2.0
-fingerprint: {}
+fingerprint:
+  __init__.py: bafybeiftgvjvw5osr3jaws2wsxlxbmb2q7tozu6bftvvuxz5bhekcfbu5q
+  tests/__init__.py: bafybeiftgvjvw5osr3jaws2wsxlxbmb2q7tozu6bftvvuxz5bhekcfbu5q
+  tests/test_vs_svc.py: bafybeibxlmvdd6sdulzsjbhzmqo2keejkpiqri2b2axefya5bzlsjpun5q
 fingerprint_ignore_patterns: []
-agent: eightballer/validation_station_broker:0.1.0:bafybeigmmvique6ogmyjxfbkgbergv33uidzzpqrgfkblarxfiy2xcuzci
+agent: eightballer/validation_station_broker:0.1.0:bafybeicym2y3jycvwzgn7ltthx5ev2wvbe2q6fmctwdm5drsxkd4cbcv2q
 number_of_agents: 4
 deployment:
   agent:

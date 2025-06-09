@@ -24,16 +24,13 @@ import asyncio
 from unittest.mock import MagicMock
 
 import pytest
-from aea.common import Address
-from aea.mail.base import Message, Envelope
+from aea.mail.base import Envelope
 from aea.identity.base import Identity
 from aea.configurations.base import ConnectionConfig
-from aea.protocols.dialogue.base import Dialogue as BaseDialogue
 
 from packages.eightballer.protocols.shell_command.message import ShellCommandMessage
 from packages.eightballer.protocols.shell_command.dialogues import (
-    ShellCommandDialogue,
-    ShellCommandDialogues as BaseShellCommandDialogues,
+    BaseShellCommandDialogues,
 )
 from packages.eightballer.connections.shell_command.connection import (
     CONNECTION_ID as CONNECTION_PUBLIC_ID,
@@ -49,27 +46,6 @@ def envelope_it(message: ShellCommandMessage):
         sender=message.sender,
         message=message,
     )
-
-
-class ShellCommandDialogues(BaseShellCommandDialogues):
-    """The dialogues class keeps track of all shell_command dialogues."""
-
-    def __init__(self, self_address: Address, **kwargs) -> None:
-        """Initialize dialogues."""
-
-        def role_from_first_message(  # pylint: disable=unused-argument
-            message: Message, receiver_address: Address
-        ) -> BaseDialogue.Role:
-            """Infer the role of the agent from an incoming/outgoing first message."""
-            del receiver_address, message
-            return ShellCommandDialogue.Role.CLI_SHELL
-
-        BaseShellCommandDialogues.__init__(
-            self,
-            self_address=self_address,
-            role_from_first_message=role_from_first_message,
-            **kwargs,
-        )
 
 
 class TestShellCommandConnection:
@@ -103,7 +79,9 @@ class TestShellCommandConnection:
         self.loop = asyncio.get_event_loop()
         self.loop.run_until_complete(self.shell_command_connection.connect())
         self.connection_address = str(ShellCommandConnection.connection_id)
-        self._dialogues = ShellCommandDialogues(self.target_skill_id)
+        self._dialogues = BaseShellCommandDialogues(
+            self_address=self.target_skill_id,
+        )
 
     @pytest.mark.asyncio
     async def test_shell_command_connection_connect(self):
