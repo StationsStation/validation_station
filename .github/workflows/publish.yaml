@@ -22,6 +22,10 @@ jobs:
             args: ''
           - platform: 'ubuntu-22.04-arm'
             args: ''
+            docker_platform: 'linux/arm64'
+          - platform: 'ubuntu-22.04'
+            args: ''
+            docker_platform: 'linux/amd64'
           - platform: 'windows-latest'
             args: ''
 
@@ -111,6 +115,27 @@ jobs:
       DOCKER_BUILDKIT: 1
       RELEASE_VERSION: 0.1.21
       IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}
+
+
+    # Needed
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: 'macos-latest'
+          args: '--target x86_64-apple-darwin'
+          docker_platform: 'linux/amd64'
+          tag_suffix: 'darwin-amd64'
+
+        - os: 'ubuntu-22.04'
+          args: '--target x86_64-unknown-linux-gnu'
+          docker_platform: 'linux/amd64'
+          tag_suffix: 'linux-amd64'
+
+        - os: 'ubuntu-22.04'
+          args: '--target aarch64-unknown-linux-gnu'
+          docker_platform: 'linux/arm64'
+          tag_suffix: 'linux-arm64'
 
     runs-on: ubuntu-22.04
     steps:
