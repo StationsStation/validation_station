@@ -26,6 +26,7 @@ autonomy-dev = {version = "==0.2.153", extras = ["all"]}
 paradigm-flood = "^0.3.1"
 lxml = {extras = ["html-clean"], version = "^5.3.1"}
 aioprometheus = "^23.12.0"
+connectorx = "^0.4.3"
 
 [tool.poetry.group.dev.dependencies]
 

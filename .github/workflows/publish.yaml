@@ -16,19 +16,18 @@ jobs:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
-            docker_platform: 'linux/arm64,linux/amd64'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
-            docker_platform: 'linux/arm64,linux/amd64'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'ubuntu-22.04-arm'
+            args: ''
+            docker_platform: 'linux/arm64'
           - platform: 'ubuntu-22.04'
             args: ''
             docker_platform: 'linux/amd64'
-          - platform: 'ubuntu-22.04' #ARM64
-            args: ''
-            docker_platform: 'linux/arm64'
           - platform: 'windows-latest'
             args: ''
-            docker_platform: 'windows/amd64' # adjust based on your image build support
 
 
     runs-on: ${{ matrix.platform }}
@@ -41,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        if: startsWith(matrix.platform, 'ubuntu-22.04')
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -84,10 +83,16 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Package Linux binary
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu-22.04')
         id: package-linux
         run: |
-          BIN_NAME=agent_runner_${RELEASE_VERSION}_amd64
+          ARCH="$(uname -m)"
+          if [ "$ARCH" = "aarch64" ]; then
+            SUFFIX="arm64"
+          else
+            SUFFIX="amd64"
+          fi
+          BIN_NAME="agent_runner_${RELEASE_VERSION}_${SUFFIX}"
           TAR_NAME=${BIN_NAME}.tar.gz
 
           cp ./src-tauri/target/release/agent_runner $BIN_NAME
@@ -96,7 +101,7 @@ jobs:
           echo "file=third_party/agent_runner/${TAR_NAME}" >> $GITHUB_OUTPUT
 
       - name: Upload Linux binary to GitHub release
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu-22.04')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
@@ -110,6 +115,7 @@ jobs:
       DOCKER_BUILDKIT: 1
       RELEASE_VERSION: 0.1.21
       IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}
+
 
     # Needed
     strategy:
@@ -130,6 +136,7 @@ jobs:
           args: '--target aarch64-unknown-linux-gnu'
           docker_platform: 'linux/arm64'
           tag_suffix: 'linux-arm64'
+
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -145,13 +152,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build platform specific image using buildx
-        run: |
-          export PLATFORM_TAG=$(echo ${{ matrix.docker_platform }} | tr '/' '-')
-          docker buildx build \
-            --platform=${{ matrix.docker_platform }} \
-            --tag $IMAGE_NAME:${RELEASE_VERSION}  \
-            --tag $IMAGE_NAME:latest \
-            --push \
-            .
-        shell: bash
+      - name: Build & push multi-arch
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
+            ${{ env.IMAGE_NAME }}:latest
+
