@@ -86,8 +86,6 @@ const buildBalancerVolumeQuery = () => `
 `;
 
   
-let derolasPoolData: any[] = [];
-  
 export async function generateAlignedPriceMatrix() {
   const [
     exchangeVoldata,
