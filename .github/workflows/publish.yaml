@@ -1,4 +1,4 @@
-na8me: 'publish'
+name: 'publish'
 
 on:
   push:
