@@ -29,6 +29,7 @@ let epochRewards = 0
 let incentiveBalance = 0
 let data = {}
 let intervalId: number;
+let olasTopUp = 0;
 
 
 let percentCompleted = 0;
@@ -709,6 +710,39 @@ async function isTauri(): Promise<boolean> {
              </Alert.Root>
            </li>
          </ul>
+
+         <!-- Topup Olasup incentives button. -->
+
+          {#if connected }
+            <div class="flex flex-col gap-2 mt-4">
+              <Input.Root
+                placeholder="Enter at least {(epochRewards / 1e18).toFixed(1)} OLAS"
+                bind:value={olasTopUp}
+                type="number"
+                min={(epochRewards / 1e18)}
+                step="1"
+                class="text-center"
+              />
+
+              {#if userContribution < minimalDonation / 1e18}
+                <Alert.Root variant="destructive">
+                  <Alert.Description class="text-sm">
+                    Minimum {(epochRewards/ 1e18).toFixed(1)} OLAS required
+                  </Alert.Description>
+                </Alert.Root>
+              {/if}
+            <Button.Root
+              variant="default"
+              class="bg-green-600 hover:bg-green-500 text-black font-bold py-3 rounded-lg w-full"
+              onclick={() => topUpOlas(olasTopUp * 1e18,)}
+            >
+              Top Up OLAS. (THIS GIVES YOU NO SHARE IN THE POOL, IT FUNDS THE GAME)
+            </Button.Root>
+
+            </div>
+          {/if}
+
+
        </Card.Content>
      </Card.Root>
 

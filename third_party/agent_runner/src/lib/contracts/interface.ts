@@ -181,6 +181,8 @@ async function loadContracts(userAddress: `0x${string}`) {
     },
   });
 
+  console.log('User Address:', userAddress);
+  console.log('Contract Address:', DEPLOYED_CONTRACT_ADDRESS);
   const gameState = await readContract(_config, {
     address: DEPLOYED_CONTRACT_ADDRESS,
     abi: derolasAbi.abi,
