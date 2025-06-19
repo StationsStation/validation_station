@@ -66,8 +66,7 @@
     });
     if (filePath) {
       // Save the logs to the selected file
-      await invoke("save_logs_to_file", { path: filePath, logs });
-      toast(`Logs saved to ${filePath}`);
+      await invoke("save_logs_to_file", { filePath, logs });
     }
   }
   async function closeLogsModal() {

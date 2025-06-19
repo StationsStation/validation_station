@@ -11,6 +11,8 @@ use bollard::models::CreateImageInfo;
 use bollard::models::HostConfig;
 use bollard::Docker;
 use chrono::Utc;
+use std::time::Duration;
+use tokio::time::sleep;
 use futures::StreamExt;
 use rand;
 use rand::prelude::IndexedRandom;
@@ -524,13 +526,17 @@ fn get_app_data_dir(app: AppHandle) -> PathBuf {
         .path()
         .resolve("app_data", AppData)
         .expect("Failed to resolve app data directory");
-    // Check if the directory exists
-
-    // Create the directory if it doesn't exist
     Some(path).expect("Failed to create app data directory")
 }
-use std::time::Duration;
-use tokio::time::sleep;
+
+#[tauri::command]
+async fn save_logs_to_file(_app: AppHandle, file_path: String, logs: String) -> Result<(), String> {
+    println!("🛠️ Saving logs to file: {}", file_path);
+    println!("Logs content: {}", logs);
+    fs::write(file_path, logs).map_err(|e| format!("Failed to write logs to file: {}", e))?;
+    Ok(())
+}
+
 
 #[tauri::command]
 async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Result<String, String> {
@@ -643,6 +649,7 @@ pub fn run() {
             get_agent_state,
             get_container_status_command,
             generate_key_file,
+            save_logs_to_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
