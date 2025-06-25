@@ -34,7 +34,8 @@
     "openapi-typescript": "^7.6.1",
     "openapi-typescript-codegen": "^0.29.0",
     "svelte-radix": "^2.0.1",
-    "viem": "^2.28.1"
+    "viem": "^2.28.1",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.6",

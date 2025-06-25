@@ -38,23 +38,31 @@ use crate::types::{Agent, AgentStatus, UserConfiguration};
 const IMAGE_NAME: &str = "8ball030/capitalisation_station:latest";
 const REGISTRY: &str = "https://index.docker.io/v1/"; // Adjust for private registries
 
-/// Connect to Docker based on the current platform.
-fn get_docker_client() -> Docker {
-    #[cfg(target_os = "windows")]
-    {
-        Docker::connect_with_named_pipe_defaults().unwrap_or_else(|e| {
-            eprintln!("❌ Failed to connect to Docker via named pipe: {}", e);
-            process::exit(1);
-        })
+pub async fn get_docker_client() -> Result<Docker, String> {
+    // Initialize the Docker client based on platform
+    let client = {
+        #[cfg(target_os = "windows")]
+        {
+            Docker::connect_with_named_pipe_defaults()
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            Docker::connect_with_unix_defaults()
+        }
+    };
+
+    let client = match client {
+        Ok(c) => c,
+        Err(e) => return Err(format!("❌ Failed to connect to Docker: {}", e)),
+    };
+
+    // Ping the Docker daemon to confirm it's alive
+    if let Err(e) = client.ping().await {
+        return Err(format!("❌ Docker ping failed: {}", e));
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        Docker::connect_with_unix_defaults().unwrap_or_else(|e| {
-            eprintln!("❌ Failed to connect to Docker via unix socket: {}", e);
-            process::exit(1);
-        })
-    }
+    Ok(client)
 }
 
 /// Get the path to Docker's config.json
@@ -104,10 +112,10 @@ fn get_credentials_for_registry(registry: &str) -> Option<DockerCredentials> {
 
 /// Pull a Docker image, streaming output status.
 pub async fn fetch_docker_image() -> Result<(), String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     // Check if the image already exists
-    let images = docker
+    let images = docker.clone()?
         .list_images(None::<bollard::image::ListImagesOptions<String>>)
         .await
         .unwrap_or_default();
@@ -129,7 +137,7 @@ pub async fn fetch_docker_image() -> Result<(), String> {
 
     let credentials = get_credentials_for_registry(REGISTRY);
 
-    let mut stream = docker.create_image(pull_options, None, credentials);
+    let mut stream = docker?.create_image(pull_options, None, credentials);
 
     println!("🚀 Pulling image: {}", IMAGE_NAME);
 
@@ -227,14 +235,14 @@ fn generate_agent_name() -> String {
 }
 
 async fn get_container_status() -> Vec<Agent> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     let container_options: ListContainersOptions<String> = ListContainersOptions {
         all: true,
         ..Default::default()
     };
 
-    let containers: Vec<ContainerSummary> = docker
+    let containers: Vec<ContainerSummary> = docker.expect("Failed to connect to Docker")
         .list_containers(Some(container_options))
         .await
         .expect("Failed to list containers");
@@ -264,13 +272,13 @@ async fn get_container_status() -> Vec<Agent> {
 }
 
 async fn container_exists(id: &str) -> bool {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     let container_options: ListContainersOptions<String> = ListContainersOptions {
         all: true,
         ..Default::default()
     };
-    let containers = docker
+    let containers = docker.expect("Failed to connect to Docker")
         .list_containers(Some(container_options))
         .await
         .unwrap_or_default();
@@ -291,13 +299,13 @@ fn list_agents() -> Vec<Agent> {
 
 #[tauri::command]
 async fn stop_container_command(id: String) -> Result<String, String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     if !container_exists(&id).await {
         return Err("Container not found.".into());
     }
 
-    docker
+    docker?
         .stop_container(&id, None)
         .await
         .map(|_| format!("Stopped container: {}", id))
@@ -306,13 +314,13 @@ async fn stop_container_command(id: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn pause_container_command(id: String) -> Result<String, String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     if !container_exists(&id).await {
         return Err("Container not found.".into());
     }
 
-    docker
+    docker?
         .pause_container(&id)
         .await
         .map(|_| format!("Paused container: {}", id))
@@ -321,13 +329,13 @@ async fn pause_container_command(id: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn unpause_container_command(id: String) -> Result<String, String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     if !container_exists(&id).await {
         return Err("Container not found.".into());
     }
 
-    docker
+    docker?
         .unpause_container(&id)
         .await
         .map(|_| format!("Unpaused container: {}", id))
@@ -336,13 +344,13 @@ async fn unpause_container_command(id: String) -> Result<String, String> {
 
 #[tauri::command]
 async fn delete_container_command(id: &str) -> Result<(), String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     if !container_exists(id).await {
         return Err("Container not found.".into());
     }
 
-    docker
+    docker?
         .remove_container(
             id,
             Some(RemoveContainerOptions {
@@ -359,14 +367,14 @@ use futures::TryStreamExt;
 
 #[tauri::command]
 async fn get_container_logs(id: String) -> Result<String, String> {
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
-    let container_status = docker
+    let container_status = docker.clone()?
         .inspect_container(&id, None)
         .await
         .map_err(|e| format!("Error inspecting container: {}", e))?;
     if container_status.state.unwrap().running.unwrap() {
-        let mut logs = docker.logs(
+        let mut logs = docker?.logs(
             &id,
             Some(LogsOptions::<String> {
                 stdout: true,
@@ -392,7 +400,7 @@ async fn get_container_logs(id: String) -> Result<String, String> {
         Ok(output)
     } else {
         println!("Container is not running.");
-        let mut logs = docker
+        let mut logs = docker?
             .logs(
                 &id,
                 Some(LogsOptions::<String> {
@@ -427,7 +435,7 @@ fn start_docker_container(config: UserConfiguration) -> Result<String, String> {
     let rt = Runtime::new().map_err(|e| format!("Failed to create Tokio runtime: {}", e))?;
 
     rt.block_on(async {
-        let docker = get_docker_client();
+        let docker = get_docker_client().await;
         if let Err(e) = fetch_docker_image().await {
             eprintln!("❌ Error pulling image: {}", e);
             return Err(format!("Failed to pull image {}: {}", IMAGE_NAME, e));
@@ -462,12 +470,12 @@ fn start_docker_container(config: UserConfiguration) -> Result<String, String> {
             platform: None,
         };
 
-        let container = docker
+        let container = docker.clone()?
             .create_container(Some(create_options), container_config)
             .await
             .map_err(|e| format!("❌ Error creating container: {}", e))?;
 
-        docker
+        docker?
             .start_container(&container.id, None::<StartContainerOptions<String>>)
             .await
             .map_err(|e| format!("❌ Error starting container: {}", e))?;
@@ -495,8 +503,8 @@ async fn get_agent_state(id: String) -> StateResponse {
     // we make a request to the port 8889 of the container
     // We use the bollard client to temporarily forward the port
     // and then we make a request to the container
-    let docker = get_docker_client();
-    let container_info = docker.inspect_container(&id, None).await.unwrap();
+    let docker = get_docker_client().await;
+    let container_info = docker.expect("DOCKER IS NOT CONNECTED").inspect_container(&id, None).await.unwrap();
     let ip = container_info.network_settings.unwrap().ip_address.unwrap();
     let url = format!("http://{}:8889/state", ip);
     let client = reqwest::Client::new();
@@ -561,7 +569,7 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
     }
 
     // Initialize Docker client
-    let docker = get_docker_client();
+    let docker = get_docker_client().await;
 
     if let Err(e) = fetch_docker_image().await {
         eprintln!("❌ Error pulling image: {}", e);
@@ -581,7 +589,7 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
     };
 
 
-    let container = docker
+    let container = docker.clone()?
         .create_container(Some(CreateContainerOptions { name: "test-container" , platform: None}), container_config)
         .await
         .expect("Failed to create container");
@@ -589,14 +597,14 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
     println!("Created container: {}", container.id);
 
     println!("Starting container with ID: {}", container.id);
-    docker
+    docker.clone()?
         .start_container(&container.id, None::<StartContainerOptions<String>>)
         .await
         .map_err(|e| format!("Failed to start container: {}", e))?;
 
     // Wait for the container to finish
     println!("Waiting for container to finish running: {}", container.id);
-    while docker
+    while docker.clone()?
         .inspect_container(&container.id, None)
         .await
         .map_err(|e| format!("Failed to inspect container: {}", e))?
@@ -610,7 +618,7 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
 
     println!("Container finished running: {}", container.id);
     // Remove the container
-    docker
+    docker?
         .remove_container(
             &container.id,
             Some(RemoveContainerOptions {
@@ -631,6 +639,20 @@ async fn generate_key_file(app: AppHandle, key_name: &str, key_file: &str) -> Re
     }
 }
 
+#[tauri::command]
+async fn connect_to_docker() -> bool {    
+    match get_docker_client().await {
+        Ok(_client) => {
+           return true
+        }
+        Err(e) => {
+            eprintln!("❌ Failed to connect to Docker: {}", e);
+        }
+    }
+    false
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -650,6 +672,7 @@ pub fn run() {
             get_container_status_command,
             generate_key_file,
             save_logs_to_file,
+            connect_to_docker,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
