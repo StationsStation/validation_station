@@ -19,10 +19,10 @@
   };
 import IncentiveTokenAbi from './IERC20.json';
 import DerolasStakingJson from './DerolasStaking.json';
-import { getAccount, readContract, type CreateConnectorFn } from '@wagmi/core'
+import { readContract, type CreateConnectorFn } from '@wagmi/core'
 import {writeContract} from 'viem/actions'
 import {custom, type Abi, type Client} from 'viem'
-import { mainnet, polygon, optimism, arbitrum, base, zkSync, avalanche, bsc } from 'viem/chains'; // or wherever your chain imports come from
+import { base, } from 'viem/chains'; // or wherever your chain imports come from
 import { createConfig, http } from '@wagmi/core'
 import { createClient, createWalletClient } from 'viem'
 import { toast } from 'svelte-sonner';

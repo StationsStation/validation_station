@@ -90,6 +90,12 @@ let strategiesToVars: Record<string, StrategyVars> = {
         value: "30",
         provision_type: "string"
       },
+      COW_CHAINS: {
+        name: "COW_CHAINS",
+        description: "Cow Protocol Chains (comma-separated)",
+        value: '["base"]',
+        provision_type: "string"
+      },
     }
   },
 };
