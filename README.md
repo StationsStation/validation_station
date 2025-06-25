@@ -22,7 +22,7 @@
 If you're looking to contribute or develop with `validation_station`, get the source code and set up the environment:
 
 ```shell
-git clone https://github.com/eightballer/validation_station --recurse-submodules
+git clone https://github.com/StationsStation/validation_station.git --recurse-submodules
 cd validation_station
 make install
 ```
