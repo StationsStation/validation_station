@@ -1,8 +1,8 @@
 
   let FunctionNames = {
     canPlayGame : 'canPlayGame',
-    epochLength : 'getEpochLength',
-    getEpochProgress : 'getEpochProgress',
+    roundLength : 'getRoundLength',
+    getRoundProgress : 'getRoundProgress',
     getTotalContributions : 'getTotalDonated',
     getTotalRewards : 'getTotalRewards',
     getUserContributions : 'getUserContributions',
@@ -10,10 +10,10 @@
     getBlockRemaining : 'getBlocksRemaining',
     minimumDonation : 'minimumDonation',
     topUpIncentives : 'topUpIncentiveBalance',
-    endEpoch : 'endEpoch',
+    endRound : 'endRound',
     getIncentiveBalance : 'currentIncentiveBalance',
-    getEpochRewards : 'getEpochRewards',
-    getCurrentEpoch : 'getCurrentEpoch',
+    getRoundRewards : 'getRoundRewards',
+    getCurrentRound : 'getCurrentRound',
     donate: 'donate',
     claim: 'claim',
   };
@@ -26,14 +26,16 @@ import { base, } from 'viem/chains'; // or wherever your chain imports come from
 import { createConfig, http } from '@wagmi/core'
 import { createClient, createWalletClient } from 'viem'
 import { toast } from 'svelte-sonner';
+
 const derolasAbi = DerolasStakingJson;
 
-let percentCompleted: number = 0;
+const BASE_RPC_URL = "https://base.llamarpc.com";
+
 
 const configWrite = createConfig({
   chains: [base, base],
   transports: {
-    [base.id]: http("https://base.llamarpc.com"),
+    [base.id]: http(BASE_RPC_URL),
   },
 })
 
@@ -48,7 +50,7 @@ let OLAS_TOKEN_ADDRESS: `0x${string}` = "0x54330d28ca3357f294334bdc454a032e7f353
 async function topUpOlas(topUpAmount: number) {
   console.log('Topping up OLAS...');
   // Logic to top up OLAS
-  console.log('Epoch Rewards:', topUpAmount);
+  console.log('Round Rewards:', topUpAmount);
   const _accounts = await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
   const _account = _accounts[0];
   console.log('Account:', _account);
@@ -118,15 +120,15 @@ async function topUpOlas(topUpAmount: number) {
 
 
 
-async function endEpoch(walletClient: any) {
-  console.log('Ending epoch...');
+async function endRound(walletClient: any) {
+  console.log('Ending round...');
 
   const accounts = await walletClient.getAddresses();
   console.log(accounts);
   const tx = await writeContract(walletClient, {
     abi: derolasAbi.abi,
     address: DEPLOYED_CONTRACT_ADDRESS,
-    functionName: 'endEpoch',
+    functionName: 'endRound',
     args: [],
     account: accounts[0],
     chain: base,
@@ -177,7 +179,7 @@ async function loadContracts(userAddress: `0x${string}`) {
   const _config = createConfig({
     chains: [base],
     client({ chain }) {
-      return createClient({ chain, transport: http("https://base.drpc.org") })
+      return createClient({ chain, transport: http(BASE_RPC_URL) })
     },
   });
 
@@ -188,63 +190,41 @@ async function loadContracts(userAddress: `0x${string}`) {
     abi: derolasAbi.abi,
     functionName: "getGameState",
     args: [userAddress],
-  }) as [
-    bigint, // epochLength
-    bigint, // currentEpoch
-    bigint, // epochEndBlock
-    bigint, // minimalDonation
-    bigint, // blocksRemaining
-    bigint, // epochRewards
-    bigint, // totalDonated
-    bigint, // totalClaimed
-    bigint, // incentiveBalance
-    bigint, // userCurrentDonation
-    bigint, // userCurrentShare
-    bigint, // userClaimable
-    boolean, // hasClaimed
-    boolean // canPlayGame
-  ];
-
-  const [
-    currentEpoch,
-    epochLength,
-    epochEndBlock,
-    minimalDonation,
-    blocksRemaining,
-    epochRewards,
-    totalDonated,
-    totalClaimed,
-    incentiveBalance,
-    userCurrentDonation,
-    userCurrentShare,
-    userClaimable,
-    hasClaimed,
-    canPlayGame,
-  ] = gameState;
-
-  
-  // console.log('Game state:', gameState);
-
-
-  let state = {
-    epochLength: Number(epochLength),
-    currentEpoch: Number(currentEpoch),
-    epochEndBlock: Number(epochEndBlock),
-    minimalDonation: Number(minimalDonation),
-    blocksRemaining: Number(blocksRemaining),
-    epochRewards: Number(epochRewards),
-    totalDonated: Number(totalDonated),
-    totalClaimed: Number(totalClaimed),
-    incentiveBalance: Number(incentiveBalance),
-    userCurrentDonation: Number(userCurrentDonation),
-    userCurrentShare: Number(userCurrentShare), // 1e18 = 100%
-    userClaimable: Number(userClaimable),
-    hasClaimed: Boolean(hasClaimed),
-    canPlayGame: Boolean(canPlayGame),
-    percentCompleted,
+  }) as {
+    blocksRemaining: bigint;
+    canPlayGame: boolean;
+    currentRound: bigint;
+    hasClaimed: boolean;
+    incentiveBalance: bigint;
+    minimumDonation: bigint;
+    roundEndBlock: bigint;
+    roundLength: bigint;
+    roundRewards: bigint;
+    totalClaimed: bigint;
+    totalDonated: bigint;
+    userClaimable: bigint;
+    userCurrentDonation: bigint;
+    userCurrentShare: bigint;
   };
-  // console.log('Game state:', state);
-  return state;
+  
+  console.log('Game State:', gameState);
+  return {
+    blocksRemaining: Number(gameState.blocksRemaining),
+    canPlayGame: Boolean(gameState.canPlayGame),
+    currentRound: Number(gameState.currentRound),
+    hasClaimed: Boolean(gameState.hasClaimed),
+    incentiveBalance: Number(gameState.incentiveBalance),
+    minimumDonation: Number(gameState.minimumDonation),
+    roundEndBlock: Number(gameState.roundEndBlock),
+    roundLength: Number(gameState.roundLength),
+    roundRewards: Number(gameState.roundRewards),
+    totalClaimed: Number(gameState.totalClaimed),
+    totalDonated: Number(gameState.totalDonated),
+    userClaimable: Number(gameState.userClaimable),
+    userCurrentDonation: Number(gameState.userCurrentDonation),
+    userCurrentShare: Number(gameState.userCurrentShare),
+  };
+
 }
 
 
@@ -252,7 +232,7 @@ async function loadContracts(userAddress: `0x${string}`) {
   export {
     loadContracts,
     topUpOlas,
-    endEpoch,
+    endRound,
     contribute,
     claim,
     FunctionNames,

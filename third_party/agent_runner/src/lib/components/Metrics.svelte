@@ -538,7 +538,7 @@ function pltData(data: any, chart: any) {
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
         ${currentFees24h.toFixed(2)}
-        <!-- {(epochRewards / 1e18).toFixed(2)} OLAS each epoch -->
+        <!-- {(roundRewards / 1e18).toFixed(2)} OLAS each round -->
       </div>
     </div>
 

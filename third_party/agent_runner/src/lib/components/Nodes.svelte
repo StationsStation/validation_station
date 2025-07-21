@@ -12,20 +12,20 @@
   import * as Progress from "./ui/progress";
   import * as Alert from "./ui/alert";
   import * as Card from "$lib/components/ui/card";
-import { getVersion } from '@tauri-apps/api/app';
-import Separator from './ui/separator/separator.svelte';
-import { base} from 'viem/chains'; // or wherever your chain imports come from
-import { claim, contribute, endEpoch, loadContracts, topUpOlas } from "$lib/contracts/interface";
-    import { addChain } from 'viem/actions';
-    import Metrics from './Metrics.svelte';
-    import BalMetrics from './ExchangeMetrics.svelte';
+  import { getVersion } from '@tauri-apps/api/app';
+  import Separator from './ui/separator/separator.svelte';
+  import { base} from 'viem/chains'; // or wherever your chain imports come from
+  import { claim, contribute, endRound, loadContracts, topUpOlas } from "$lib/contracts/interface";
+  import { addChain } from 'viem/actions';
+  import Metrics from './Metrics.svelte';
+  import BalMetrics from './ExchangeMetrics.svelte';
     
 
 let PUBLIC_WALLETCONNECT_ID = "189298bf7ea32b9f16f1369599ad0ad4"
 
 
 
-let epochRewards = 0
+let roundRewards = 0
 let incentiveBalance = 0
 let data = {}
 let intervalId: number;
@@ -33,11 +33,11 @@ let olasTopUp = 0;
 
 
 let percentCompleted = 0;
-let epochNumber = 0;
+let roundNumber = 0;
 let isRunningInTauri = false;
 let totalDonated = 0;
-let epochLength = 100; // e.g., 100 blocks
-let blocksRemaining = epochLength;
+let roundLength = 90; // e.g., 100 blocks
+let blocksRemaining = roundLength;
 let account: Address = "0x0000000000000000000000000000000000000000";
 let animatedPercent = 0;
 let userCurrentShare = 0;
@@ -48,7 +48,7 @@ let userContribution = 0;
 let userCurrentDonation = 0;
 let currentTab = 'contribute'; // or 'info'
 
-let minimalDonation = 0.00001; // e.g., 0.1 ETH
+let minimumDonation = 0.00001; // e.g., 0.1 ETH
 
 const SUPPORTED_CHAIN_ID = base.id;
 
@@ -106,7 +106,7 @@ walletClient = result;
 return result;
 }
 
-async function setUpWalletConnectBrowser(): Promise<any> {
+async function setUp(): Promise<any> {
   if (!WalletConnectProvider) {
     WalletConnectProvider = (await import('@walletconnect/ethereum-provider')).EthereumProvider;
   }
@@ -316,17 +316,17 @@ async function isTauri(): Promise<boolean> {
     // console.log('Data loaded:', data);
     blocksRemaining = Number(data.blocksRemaining);
     totalDonated = Number(data.totalDonated);
-    epochNumber = Number(data.currentEpoch);
-    epochLength = Number(data.epochLength);
-    minimalDonation = Number(data.minimalDonation);
-    epochRewards = Number(data.epochRewards);
+    roundNumber = Number(data.currentRound);
+    roundLength = Number(data.roundLength);
+    minimumDonation = Number(data.minimumDonation) / 1e18;
+    roundRewards = Number(data.roundRewards);
     userCurrentShare = Number(data.userCurrentShare);
     userClaimable = Number(data.userClaimable);
     userCurrentDonation = Number(data.userCurrentDonation);
     canPlayGame = data.canPlayGame;
     incentiveBalance = Number(data.incentiveBalance);
-    percentCompleted = Math.floor((epochLength - blocksRemaining) / epochLength * 100);
-    animatedPercent = Math.floor((epochLength - blocksRemaining) / epochLength * 100);
+    percentCompleted = Math.floor((roundLength - blocksRemaining) / roundLength * 100);
+    animatedPercent = Math.floor((roundLength - blocksRemaining) / roundLength * 100);
   }
 
   // onDestroy(() => {
@@ -416,18 +416,18 @@ async function isTauri(): Promise<boolean> {
 {#if currentTab === 'contribute'}
   <Card.Header class="text-center space-y-4">
     <Card.Title class="text-2xl font-bold tracking-tight">
-      Epochal Reward Split (ERS)
+      Roundal Reward Split (ERS)
     </Card.Title>
 
     <Card.Description class="text-green-500 text-sm">
-      Contribute ETH → Claim OLAS. Rewards distributed at epoch end.
+      Contribute ETH → Claim OLAS. Rewards distributed at round end.
     </Card.Description>
 
     <!-- Important Metrics Row -->
     <div class="flex flex-col sm:flex-row justify-center gap-8 text-green-400 text-sm items-center">
       <div class="flex items-center gap-2">
         <Timer class="w-4 h-4" />
-        <span>Epoch {epochNumber}</span>
+        <span>Round {roundNumber}</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -437,7 +437,7 @@ async function isTauri(): Promise<boolean> {
 
       <div class="flex items-center gap-2">
         <Flame class="w-4 h-4" />
-        <span>{(incentiveBalance / epochRewards).toFixed(0)} Epochs Remaining</span>
+        <span>{(blocksRemaining).toFixed(0)} Blocks Remaining</span>
       </div>
     </div>
 
@@ -476,14 +476,14 @@ async function isTauri(): Promise<boolean> {
       <div class="text-green-300 text-right">{(totalDonated / 1e18).toFixed(6)} ETH</div>
 
       <div class="text-green-500">Minimum Donation</div>
-      <div class="text-green-300 text-right">{(minimalDonation / 1e18).toFixed(6)} ETH</div>
+      <div class="text-green-300 text-right">{(minimumDonation ).toFixed(6)} ETH</div>
     </Card.Content>
   </Card.Root>
 
-  <!-- Epoch Controls -->
+  <!-- Round Controls -->
   <Card.Root class="p-4 border border-green-500 bg-black text-green-400 shadow-md">
     <Card.Header class="pb-2">
-      <Card.Title class="text-base font-bold">Epoch Controls</Card.Title>
+      <Card.Title class="text-base font-bold">Round Controls</Card.Title>
     </Card.Header>
 
     {#if connected}
@@ -501,17 +501,17 @@ async function isTauri(): Promise<boolean> {
       {#if blocksRemaining == 0}
         <Button.Root
           class="w-full bg-red-600 hover:bg-red-500 text-black font-bold py-3 rounded-lg"
-          on:click={() => endEpoch(walletClient)}
+          on:click={() => endRound(walletClient)}
           disabled={!connected}
         >
-          End Epoch
+          End Round
         </Button.Root>
       {/if}
 
       {#if userCurrentShare > 0 && blocksRemaining > 0}
         <Alert.Root variant="destructive">
           <Alert.Description class="text-lg">
-            Waiting for the epoch to contribute again!
+            Waiting for the round to contribute again!
           </Alert.Description>
         </Alert.Root>
       {/if}
@@ -520,19 +520,19 @@ async function isTauri(): Promise<boolean> {
       {#if connected && blocksRemaining > 0 && userCurrentShare == 0}
         <div class="flex flex-col gap-2 mt-4">
           <Input.Root
-            placeholder="Enter at least {(minimalDonation / 1e18).toFixed(6)} ETH"
+            placeholder="Enter at least {(minimumDonation / 1e18).toFixed(6)} ETH"
             bind:value={userContribution}
             type="number"
-            min={(minimalDonation / 1e18)}
-            step="0.00001"
+            min={(minimumDonation/ 1e18).toFixed(6)}
+            step={minimumDonation}
             max="0.01"
             class="text-center"
           />
 
-          {#if userContribution < minimalDonation / 1e18}
+          {#if userContribution < minimumDonation / 1e18}
             <Alert.Root variant="destructive">
               <Alert.Description class="text-sm">
-                Minimum {(minimalDonation / 1e18).toFixed(6)} ETH required
+                Minimum {(minimumDonation ).toFixed(6)} ETH required
               </Alert.Description>
             </Alert.Root>
           {/if}
@@ -540,7 +540,7 @@ async function isTauri(): Promise<boolean> {
           <Button.Root
             class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg"
             on:click={() => contribute(userContribution * 1e18, walletClient)}
-            disabled={userContribution < minimalDonation / 1e18 || blocksRemaining == 0 || userCurrentDonation > 0}
+            disabled={userContribution < minimumDonation / 1e18 || blocksRemaining == 0 || userCurrentDonation > 0}
           >
             Contribute {userContribution} ETH
           </Button.Root>
@@ -554,7 +554,7 @@ async function isTauri(): Promise<boolean> {
 
   </div>
 
-<!-- Epoch Metrics -->
+<!-- Round Metrics -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
   <!-- Total Donations -->
   <Card.Root class="border border-green-700 bg-green-950 px-4 py-3 rounded-lg space-y-2">
@@ -580,7 +580,7 @@ async function isTauri(): Promise<boolean> {
       <Users class="w-6 h-6 text-green-400" />
       <Card.Title class="text-base font-semibold">Current Share</Card.Title>
     </Card.Header>
-    <Card.Content class="text-center text-2xl font-bold">{userCurrentShare / 1e18 * 100} %</Card.Content>
+    <Card.Content class="text-center text-2xl font-bold">{userCurrentShare / 1e16} %</Card.Content>
   </Card.Root>
 </div>
 
@@ -590,11 +590,11 @@ async function isTauri(): Promise<boolean> {
 
   <Card.Header class="text-center space-y-4">
     <Card.Title class="text-2xl font-bold tracking-tight">
-      Epochal Reward Split (ERS)
+      Round Reward Split (RRS)
     </Card.Title>
 
     <Card.Description class="text-green-500 text-sm">
-      Contribute ETH → Claim OLAS. Rewards distributed at epoch end.
+      Contribute ETH → Claim OLAS. Rewards distributed at round end.
     </Card.Description>
     </Card.Header>
     <Card.Content> 
@@ -617,25 +617,25 @@ async function isTauri(): Promise<boolean> {
       </div>
     </div>
 
-    <!-- Epoch Rewards -->
+    <!-- Round Rewards -->
     <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
       <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
         <Gift class="w-4 h-4" />
-        Epoch Rewards
+        Round Rewards
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
-        {(epochRewards / 1e18).toFixed(2)} OLAS each epoch
+        {(roundRewards / 1e18).toFixed(2)} OLAS each round
       </div>
     </div>
 
-    <!-- Epoch Progress -->
+    <!-- Round Progress -->
     <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
       <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
         <Clock class="w-4 h-4" />
-        Epoch Progress
+        Round Progress
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
-        {blocksRemaining}/{epochLength} blocks
+        {blocksRemaining}/{roundLength} blocks
       </div>
     </div>
 
@@ -646,7 +646,7 @@ async function isTauri(): Promise<boolean> {
         Minimum Donation
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
-        {(minimalDonation / 1e18).toFixed(6)} ETH
+        {(minimumDonation ).toFixed(6)} ETH
       </div>
     </div>
 
@@ -654,7 +654,7 @@ async function isTauri(): Promise<boolean> {
 
 
 
-  <!-- Epoch Summary -->
+  <!-- Round Summary -->
     <div class="space-y-6 text-green-300 max-w-4xl mx-auto">
      <Card.Root>
        <Card.Content>
@@ -670,7 +670,7 @@ async function isTauri(): Promise<boolean> {
            <li class="flex items-start gap-4">
              <Gift class="w-8 h-8 text-green-300 mt-1" />
              <p>
-               <strong class="text-green-100">OLAS rewards:</strong> Distributed at the end of each epoch based on your pro-rata contribution to the donation pool.
+               <strong class="text-green-100">OLAS rewards:</strong> Distributed at the end of each round based on your pro-rata contribution to the donation pool.
              </p>
            </li>
            <!-- Unclaimed Rewards -->
@@ -693,18 +693,18 @@ async function isTauri(): Promise<boolean> {
            <li class="flex items-start gap-4">
              <BrainCircuit class="w-8 h-8 text-green-300 mt-1" />
              <p>
-               <strong class="text-green-100">Prisoner's Dilemma:</strong> Each epoch, you can donate more to increase your share of rewards — but if everyone does this, rewards are diluted.
+               <strong class="text-green-100">Prisoner's Dilemma:</strong> Each round, you can donate more to increase your share of rewards — but if everyone does this, rewards are diluted.
              </p>
            </li>
            <!-- Prisoner's Dilemma -->
            <li class="flex items-start gap-4">
 
              <Alert.Root variant="destructive" class="mb-3">
-               <Alert.Title class="text-red-500">Rewards Are Only Claimable for 1 Epoch!</Alert.Title>
+               <Alert.Title class="text-red-500">Rewards Are Only Claimable for 1 Round!</Alert.Title>
                <Separator class="my-2" />
                <Alert.Description class="text-red-400">
                  <p>
-                   If you do not claim your rewards within the current epoch, they will be donated to the pool and you will not receive them.
+                   If you do not claim your rewards within the current round, they will be donated to the pool and you will not receive them.
                  </p>
                </Alert.Description>
              </Alert.Root>
@@ -716,18 +716,18 @@ async function isTauri(): Promise<boolean> {
           {#if connected }
             <div class="flex flex-col gap-2 mt-4">
               <Input.Root
-                placeholder="Enter at least {(epochRewards / 1e18).toFixed(1)} OLAS"
+                placeholder="Enter at least {(roundRewards / 1e18).toFixed(1)} OLAS"
                 bind:value={olasTopUp}
                 type="number"
-                min={(epochRewards / 1e18)}
+                min={(roundRewards / 1e18)}
                 step="1"
                 class="text-center"
               />
 
-              {#if userContribution < minimalDonation / 1e18}
+              {#if userContribution < minimumDonation / 1e18}
                 <Alert.Root variant="destructive">
                   <Alert.Description class="text-sm">
-                    Minimum {(epochRewards/ 1e18).toFixed(1)} OLAS required
+                    Minimum {(roundRewards/ 1e18).toFixed(1)} OLAS required
                   </Alert.Description>
                 </Alert.Root>
               {/if}

@@ -208,7 +208,7 @@ export async function generateAlignedPriceMatrix() {
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
         {currentDerolasVolume24h.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-        <!-- {(epochRewards / 1e18).toFixed(2)} OLAS each epoch -->
+        <!-- {(roundRewards / 1e18).toFixed(2)} OLAS each round -->
       </div>
     </div>
 
