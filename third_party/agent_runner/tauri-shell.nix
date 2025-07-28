@@ -9,7 +9,7 @@ pkgs.mkShell {
     xdg-utils
     fuse
     appimage-run
-    appimagekit
+ #  appimagekit
     jdk
     # rust tools
     rustup

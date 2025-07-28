@@ -20,7 +20,7 @@ let
     gtk3
     libsoup
     webkitgtk
-    appimagekit
+#   appimagekit
     librsvg
     cargo
     rustc

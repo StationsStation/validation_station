@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle } from "lucide-svelte";
+  import { HandCoins, Clock, Users, Gift, DollarSign, CircleDollarSign, Info, Timer, BrainCircuit, TimerReset, Sparkles, Flame, SeparatorVertical, StopCircle, Coins } from "lucide-svelte";
   import * as Card from "$lib/components/ui/card";
    import {  onMount } from 'svelte';
   import * as echarts from 'echarts';
@@ -8,13 +8,19 @@
   let chartDivTVL: HTMLElement | null | undefined;
   let chartDivSharePrice: HTMLElement | null | undefined;
   let chartDivFees: HTMLElement | null | undefined;
+  let chartDivShares: HTMLElement | null | undefined;
 
   let currentAPR: number = 0;
   let currentTrades24h: number = 0;
   let currentFees24h: number = 0;
   let currentTVL: number = 0;
+  let currentShares: number = 0;
+  let currentSharePrice: number = 0;
+  let initialSharePrice: number = 0;
+
 
   import dayjs from 'dayjs';
+    import { parse } from "svelte/compiler";
   // struuct for exchanges
   interface Exchange {
     name: string;
@@ -214,9 +220,17 @@ export async function generateAlignedPriceMatrix() {
   currentFees24h = parseFloat(snapshot.fees24h);
   currentTVL = parseFloat(snapshot.totalLiquidity);
   currentAPR = (parseFloat(snapshot.fees24h) * 365 / parseFloat(snapshot.totalLiquidity)) * 100;
-
-
+  // current shares is the total shares in the pool
+  currentShares = parseFloat(snapshot.totalShares);
 }
+  // Set initial share price based on the first snapshot
+  if (derolaPrices.length > 0) {
+    initialSharePrice = parseFloat(derolaPrices[0].sharePrice);
+    currentSharePrice = parseFloat(derolaPrices[derolaPrices.length - 1].sharePrice);
+  } else {
+    initialSharePrice = 0;
+    currentSharePrice = 0;
+  }
 
   // Filter timestamps to shared minimum
   const allSymbols = [...SYMBOLS, "DEROLAS"];
@@ -238,13 +252,12 @@ export async function generateAlignedPriceMatrix() {
 
 
 
-
-
 let chartRoi: echarts.ECharts;
 let chartTVL: echarts.ECharts;
 let chart24hFees: echarts.ECharts;
 
 let chartSharePrice: echarts.ECharts;
+let chartShares: echarts.ECharts;
 
 
   onMount(() => {
@@ -299,7 +312,7 @@ let chartSharePrice: echarts.ECharts;
       // We do need to make suer the label is called "TVL" and not "_DEROLAS_META"
       return tokens.map(symbol => ({
         name: "TVL",
-        type: "bar",
+        type: "line",
         showSymbol: false,
         emphasis: { focus: 'series' },
         data: matrix.map(row => [
@@ -334,7 +347,7 @@ let chartSharePrice: echarts.ECharts;
       // We do need to make suer the label is called "TVL" and not "_DEROLAS_META"
       return tokens.map(symbol => ({
         name: "Fees",
-        type: "bar",
+        type: "line",
         showSymbol: false,
         emphasis: { focus: 'series' },
         data: matrix.map(row => [
@@ -428,20 +441,50 @@ data.then((seriesData) => {
   console.log("Matrix:", matrix);
   console.log("Data:", data);
 
+  chartShares = echarts.init(chartDivShares, darkGreenTheme,  { renderer: 'canvas' });
+  data = matrix.then((matrix) => {
+    const tokens = Object.keys(matrix[0]).filter(k => k === "_DEROLAS_META");
+    return tokens.map(symbol => ({
+      type: "line",
+      showSymbol: false,
+      emphasis: { focus: 'series' },
+      data: matrix.map(row => [
+        row.timestamp,
+        typeof row[symbol] === 'object' && 'totalShares' in row[symbol] ? row[symbol].totalShares : 0
+      ]),
+      label: {
+        show: false,
+        position: 'top',
+        textStyle: {
+          color: '#00ff00',
+          fontSize: 10,
+        }
+      },
+    }));
+  });
+  data.then((data) => {
+    pltData(data, chartShares);
+  });
+
   const observer = new ResizeObserver(() => {
     chartTVL?.resize();
     chart24hFees?.resize();
     chartSharePrice?.resize();
     chartRoi?.resize();
+    chartShares?.resize();
 
   });
-  if (chartDivTVL && chartDivFees && chartDivSharePrice && chartDivRoi) {
+
+  // we now plot the shares chart
+  if (chartDivTVL && chartDivFees && chartDivSharePrice && chartDivRoi && chartDivShares) {
     observer.observe(chartDivTVL);
     observer.observe(chartDivFees);
     observer.observe(chartDivSharePrice);
     observer.observe(chartDivRoi);
+    observer.observe(chartDivShares);
   }
-  });
+
+});
 
 
 function pltData(data: any, chart: any) {
@@ -519,6 +562,7 @@ function pltData(data: any, chart: any) {
       </Card.Content>
     </Card.Root>
 
+
   <div class="grid text-center grid-cols-1 sm:grid-cols-2 gap-6">
 
     <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
@@ -538,7 +582,7 @@ function pltData(data: any, chart: any) {
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
         ${currentFees24h.toFixed(2)}
-        <!-- {(epochRewards / 1e18).toFixed(2)} OLAS each epoch -->
+        <!-- {(roundRewards / 1e18).toFixed(2)} OLAS each round -->
       </div>
     </div>
 
@@ -546,10 +590,10 @@ function pltData(data: any, chart: any) {
     <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
       <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
         <Flame class="w-4 h-4" />
-        Total Swaps 24h
+        Total Shares
       </div>
       <div class="text-green-300 text-lg font-bold font-mono">
-        {currentTrades24h}
+        {currentShares.toFixed(2)}
       </div>
     </div>
 
@@ -565,8 +609,34 @@ function pltData(data: any, chart: any) {
       </div>
     </div>
 
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+      <Coins class="w-4 h-4" />
+      Current Share Price
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+      ${currentShares > 0 ? (currentTVL / currentShares).toFixed(2) : "N/A"}
+      </div>
+    </div>
+
+
+    <div class="bg-green-950 border border-green-700 rounded-lg p-3 flex flex-col gap-1">
+      <div class="flex items-center gap-2 text-green-500 text-xs font-bold uppercase tracking-wide">
+      <Coins class="w-4 h-4" />
+      Current ROI
+      </div>
+      <div class="text-green-300 text-lg font-bold font-mono">
+      {currentSharePrice > 0 ? ((currentSharePrice - initialSharePrice) / initialSharePrice * 100).toFixed(2) : "N/A"}%
+      </div>
+    </div>
+
+  
 
   </div>
+  <!-- Shares Price and ROI -->
+  <div class="flex flex-col gap-4 w-full p-0">
+
+    </div>  
     <Card.Root class="flex-1 min-w-0">
       <Card.Content>
         <Card.Title>Cumulative ROI of Assets in Bundle.</Card.Title>
@@ -591,5 +661,12 @@ function pltData(data: any, chart: any) {
       </Card.Content>
     </Card.Root>
   </div>
+
+    <Card.Root class="flex-1 min-w-0 p-0">
+      <Card.Content>
+        <Card.Title>Derolas LP Shares.</Card.Title>
+        <div bind:this={chartDivShares} class="w-full h-[150px]  p-0 m-0"></div>
+      </Card.Content>
+    </Card.Root>
 
 </div>
