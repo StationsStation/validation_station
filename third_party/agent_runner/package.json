@@ -17,12 +17,12 @@
   "license": "MIT",
   "dependencies": {
     "@openapitools/openapi-generator-cli": "^2.18.4",
-    "@tauri-apps/api": "^2.4.1",
-    "@tauri-apps/plugin-dialog": "^2.2.1",
+    "@tauri-apps/api": "2.5.1",
+    "@tauri-apps/plugin-dialog": "^2.3.0",
     "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-http": "~2",
     "@tauri-apps/plugin-notification": "^2.2.2",
-    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-opener": "^2.3.0",
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@tauri-apps/plugin-store": "~2",
     "@tauri-apps/plugin-websocket": "~2",
@@ -59,7 +59,6 @@
     "jsdom": "^26.1.0",
     "mode-watcher": "^1.0.2",
     "playwright": "^1.52.0",
-    "shadcn-svelte": "0.14.3",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "svelte-sonner": "^0.3.28",
@@ -69,6 +68,7 @@
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vitest": "^3.1.2",
+    "shadcn-svelte": "0.14.3",
     "wagmi": "1.4.13"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
